@@ -638,6 +638,14 @@ body {
   text-shadow: 0 0 4px #D29DF8;
 }
 
+.die.negative {
+  border-color: var(--madness-purple);
+  background: linear-gradient(135deg, #3B1C47 0%, #0E0512 100%);
+  color: #D29DF8;
+  box-shadow: 0 0 10px rgba(91, 58, 99, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.05);
+  text-shadow: 0 0 4px #D29DF8;
+}
+
 .die.polluted {
   border-color: var(--danger-red);
   background: linear-gradient(135deg, #4A1D1D 0%, #1A0A0A 100%);
@@ -815,6 +823,104 @@ body {
   margin-top: var(--s-16);
 }
 
+.card-intro-bg {
+  background: rgba(5, 8, 10, 0.38);
+  backdrop-filter: blur(3px);
+}
+
+.card-intro-modal {
+  width: min(78vw, 320px);
+  max-width: 320px;
+  padding: var(--s-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-8);
+  background: rgba(14, 15, 18, 0.82);
+}
+
+.card-intro-art-frame {
+  width: 100%;
+  aspect-ratio: 1.18 / 1;
+  border-radius: 8px;
+  border: 1px solid rgba(123, 167, 198, 0.35);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.58);
+  overflow: hidden;
+  background: var(--madness-black);
+}
+
+.card-intro-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.72);
+}
+
+.card-intro-type {
+  align-self: center;
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--highlight-blue);
+  border: 1px solid rgba(123, 167, 198, 0.42);
+  background: rgba(123, 167, 198, 0.08);
+  padding: 2px var(--s-8);
+  border-radius: 999px;
+}
+
+.card-intro-type.event {
+  color: var(--warning-yellow);
+  border-color: rgba(242, 201, 76, 0.46);
+  background: rgba(242, 201, 76, 0.08);
+}
+
+.card-intro-modal h2 {
+  margin-bottom: 0;
+  font-size: 17px;
+}
+
+.card-intro-lore {
+  color: var(--text-primary);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.card-intro-rule {
+  font-size: 10px;
+  color: var(--warning-yellow);
+  border: 1px solid rgba(242, 201, 76, 0.32);
+  background: rgba(242, 201, 76, 0.07);
+  border-radius: 8px;
+  padding: var(--s-6);
+  line-height: 1.45;
+}
+
+.card-intro-targets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-intro-target {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(42, 58, 70, 0.7);
+  background: rgba(14, 15, 18, 0.62);
+  border-radius: 6px;
+  padding: 5px var(--s-8);
+  font-size: 10px;
+}
+
+.card-intro-target strong {
+  color: var(--warning-yellow);
+  font-family: var(--font-num);
+}
+
+.card-intro-confirm {
+  width: 100%;
+  margin-top: var(--s-6) !important;
+}
+
 /* Start screen */
 .start-menu-grid {
   display: flex;
@@ -862,6 +968,14 @@ body {
 @keyframes modalScale {
   from { transform: scale(0.9) translateY(20px); opacity: 0; }
   to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes diceRoll {
+  0% { transform: rotate(0deg) translateY(0) scale(1); }
+  20% { transform: rotate(80deg) translateY(-8px) scale(1.05); }
+  45% { transform: rotate(180deg) translateY(4px) scale(0.96); }
+  70% { transform: rotate(280deg) translateY(-6px) scale(1.08); }
+  100% { transform: rotate(360deg) translateY(0) scale(1); }
 }
 
 /* Glowing Pulse Animations for Active Phase Buttons */
@@ -939,6 +1053,7 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
 }
 
@@ -948,6 +1063,7 @@ body {
   flex-direction: column !important;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: #0f1820;
   position: relative;
   overflow: hidden;
@@ -1106,8 +1222,8 @@ body {
 
 /* 4. Serpentine board scaling to fit middle of app screen */
 .board {
-  flex: 1 0 360px !important;
-  min-height: 360px !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
   position: relative;
   overflow: hidden;
   border: none !important;
@@ -1173,15 +1289,42 @@ body {
 
 /* 5. Mobile Controls Tray (Bottom Panel) */
 .mobile-controls-panel {
-  background: rgba(14, 15, 18, 0.95);
-  border-top: 2px solid var(--border-stone);
-  border-radius: 20px 20px 0 0;
-  padding: var(--s-16) var(--s-16) calc(var(--s-16) + env(safe-area-inset-bottom, 0px));
+  flex: 0 0 auto;
+  max-height: 34dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(10, 14, 18, 0.58);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(123, 167, 198, 0.28);
+  border-radius: 16px 16px 0 0;
+  padding: var(--s-8) var(--s-12) calc(var(--s-10, 10px) + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
-  gap: var(--s-12);
+  gap: var(--s-8);
   z-index: 50;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.round-intro .board {
+  flex-basis: calc(100dvh - 60px) !important;
+}
+
+.round-intro .mobile-controls-panel {
+  display: none;
+}
+
+.round-ready .board {
+  flex-basis: clamp(360px, 66dvh, 620px) !important;
+}
+
+.round-ready .mobile-controls-panel {
+  max-height: calc(100dvh - 60px - clamp(360px, 66dvh, 620px));
+  min-height: 0;
+  pointer-events: none;
+}
+
+.round-ready .mobile-controls-panel #active-card-panel {
+  pointer-events: auto;
 }
 
 /* Make inner components layout cleanly */
@@ -1218,6 +1361,10 @@ body {
   margin-bottom: 4px;
 }
 
+.round-ready .active-card-hint {
+  display: none;
+}
+
 .active-card-tasks {
   display: flex;
   flex-direction: column;
@@ -1237,17 +1384,35 @@ body {
 
 /* Dice Pool & Dice Tray styles */
 #dice-pool {
-  width: 100%;
+  width: min(84vw, 340px);
+}
+
+.dice-pool {
+  position: fixed;
+  left: 50%;
+  top: 44dvh;
+  transform: translate(-50%, -50%);
+  z-index: 70;
+  background: rgba(8, 12, 16, 0.26) !important;
+  border: 1px solid rgba(123, 167, 198, 0.18) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34) !important;
+  backdrop-filter: blur(4px);
+  border-radius: 14px;
+  padding: var(--s-8);
+  display: grid !important;
+  grid-template-columns: 78px 1fr 76px;
+  gap: var(--s-8);
+  align-items: stretch;
 }
 
 .mini-dice-pack-container {
   display: flex;
   align-items: center;
   gap: var(--s-8);
-  background: rgba(0, 0, 0, 0.3);
-  padding: var(--s-8) var(--s-12);
+  background: rgba(0, 0, 0, 0.18);
+  padding: var(--s-6) var(--s-8);
   border-radius: 8px;
-  border: 1px solid rgba(42, 58, 70, 0.4);
+  border: 1px solid rgba(123, 167, 198, 0.16);
 }
 
 .mini-pack-label {
@@ -1311,11 +1476,11 @@ body {
 .dice-tray-container {
   display: flex;
   flex-direction: column;
-  gap: var(--s-6);
-  background: rgba(0, 0, 0, 0.4);
-  padding: var(--s-8) var(--s-12);
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: var(--s-6) var(--s-8);
   border-radius: 10px;
-  border: 1px solid rgba(42, 58, 70, 0.5);
+  border: 1px solid rgba(123, 167, 198, 0.18);
 }
 
 .dice-tray-label {
@@ -1351,9 +1516,119 @@ body {
   transform: translateY(-4px) scale(1.08);
 }
 
+.task-item.achieved {
+  background: rgba(39, 174, 96, 0.14);
+  border-color: rgba(39, 174, 96, 0.75);
+  box-shadow: 0 0 10px rgba(39, 174, 96, 0.22);
+}
+
+.active-card-hint,
+.active-card-readout {
+  width: 100%;
+  border: 1px solid rgba(123, 167, 198, 0.28);
+  background: rgba(123, 167, 198, 0.08);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: var(--s-6) var(--s-8);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.active-card-readout {
+  color: var(--warning-yellow);
+  border-color: rgba(242, 201, 76, 0.34);
+  background: rgba(242, 201, 76, 0.08);
+}
+
+.dice-score-panel {
+  min-width: 78px;
+  background: rgba(242, 201, 76, 0.07);
+  border: 1px solid rgba(242, 201, 76, 0.24);
+  border-radius: 8px;
+  padding: var(--s-6);
+  text-align: center;
+}
+
+.dice-score-label {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.dice-score-value {
+  font-family: var(--font-num);
+  font-size: 24px;
+  color: var(--warning-yellow);
+  line-height: 1.1;
+}
+
+.dice-score-formula {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.dice-pool-hidden,
+.action-rail-hidden {
+  display: none !important;
+}
+
+.dice-pool.is-rolling .dice-tray-container {
+  border-color: rgba(242, 201, 76, 0.55);
+  box-shadow: 0 0 14px rgba(242, 201, 76, 0.2);
+}
+
+.rolling-die {
+  border-color: var(--warning-yellow) !important;
+  color: var(--warning-yellow) !important;
+  animation: diceRoll 0.52s infinite linear;
+  box-shadow: 0 0 18px rgba(242, 201, 76, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.2) !important;
+}
+
+.item-context-rail {
+  width: 100%;
+  border: 1px dashed rgba(123, 167, 198, 0.28);
+  background: rgba(8, 12, 16, 0.42);
+  backdrop-filter: blur(4px);
+  color: var(--text-muted);
+  border-radius: 8px;
+  padding: 4px var(--s-8);
+  font-size: 10px;
+  text-align: center;
+  margin-top: var(--s-6);
+}
+
+.action-rail .btn-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-8);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.55));
+}
+
+.action-rail .btn-group.single-action {
+  grid-template-columns: 1fr;
+  width: min(64vw, 260px);
+  margin: 0 auto;
+}
+
+.action-rail .btn {
+  width: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 var(--s-8) !important;
+  text-align: center;
+}
+
 /* Action Rail Bottom Button */
 .action-rail {
-  width: 100%;
+  position: fixed;
+  left: 50%;
+  bottom: calc(clamp(168px, 30dvh, 260px) + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(88vw, 360px);
+  z-index: 75;
+  background: transparent;
+  pointer-events: auto;
 }
 
 .action-rail .btn-group {
@@ -1362,7 +1637,7 @@ body {
 
 .action-rail .btn {
   width: 100%;
-  height: 44px;
+  height: 46px;
   font-size: 13px;
   font-weight: 700;
   border-radius: 8px;
@@ -1472,4 +1747,33 @@ body {
   .btn[style*="position: fixed"] {
     top: 24px !important; /* alignment for physical notch spacer */
   }
+}
+
+/* MVP blackjack-style action layout overrides */
+.action-rail .btn-group {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-8);
+  width: 100%;
+}
+
+.action-rail .btn-group.single-action {
+  grid-template-columns: 1fr !important;
+  width: min(64vw, 260px);
+  margin: 0 auto;
+}
+
+.action-rail .btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-width: 0;
+  height: 44px;
+  padding: 0 var(--s-8) !important;
+  text-align: center;
+}
+
+.action-rail-hidden {
+  display: none !important;
 }

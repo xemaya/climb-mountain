@@ -1,10 +1,23 @@
+import { resolveTask } from "../game/cards";
+import { climbScore } from "../game/rules";
 import type { Action, GameState } from "../game/types";
-import { selectedRerollIds, clearSelectedRerollIds } from "./dicePool";
+
+function settleText(state: GameState): string {
+  if (!state.currentCard || state.player.rolled.length === 0) return "先触碰命运";
+
+  const score = climbScore(state.player.rolled);
+  const advance = resolveTask(state.currentCard, score);
+  if (advance === null) return `封印失败：坠 ${2} 格`;
+  if (advance > 0) return `封印此刻：进 ${advance} 格`;
+  if (advance < 0) return `封印失败：坠 ${Math.abs(advance)} 格`;
+  return "封印此刻：稳住";
+}
 
 export function renderActionRail(
   parent: HTMLElement,
   state: GameState,
   dispatch: (a: Action) => void,
+  options: { visible: boolean; rolling: boolean } = { visible: true, rolling: false },
 ): void {
   if (!parent) return;
 
@@ -12,74 +25,53 @@ export function renderActionRail(
   parent.className = "action-rail";
 
   const container = document.createElement("div");
-  container.className = "btn-group";
+  const hasRolledDice = state.player.rolled.length > 0;
+  container.className = hasRolledDice ? "btn-group" : "btn-group single-action";
 
-  // Calculate dice requirement limits
-  const min = state.currentCard?.minDice === "ALL"
-    ? state.player.handDice.length
-    : (state.currentCard?.minDice ?? 0) as number;
+  if (!options.visible) {
+    parent.className = "action-rail action-rail-hidden";
+    parent.appendChild(container);
+    return;
+  }
 
-  const currentSelectionCount = state.player.selected.length;
-
-  if (state.phase === "resolving") {
+  if (state.phase === "resolving" || options.rolling) {
     const btn = document.createElement("button");
     btn.className = "btn disabled pulse-yellow";
     btn.disabled = true;
-    btn.innerHTML = "<span>⚙ 邪神结算中...</span>";
+    btn.innerHTML = `<span>${options.rolling ? "命运正在翻滚..." : "雪线正在吞吐..."}</span>`;
     container.appendChild(btn);
+    parent.appendChild(container);
+    return;
   }
-  else if (state.phase === "await-select") {
+
+  if (state.phase !== "await-select") {
     const btn = document.createElement("button");
-    if (currentSelectionCount >= min) {
-      btn.className = "btn primary pulse-green";
-      btn.innerHTML = "<span>确认选择并掷骰 🎲</span>";
-      btn.addEventListener("click", () => {
-        dispatch({ kind: "select-dice", ids: state.player.selected });
-      });
-    } else {
-      btn.className = "btn disabled";
-      btn.disabled = true;
-      btn.innerHTML = `<span>请选择骰子以开始挑战 (${currentSelectionCount}/${min}) 🎲</span>`;
-    }
+    btn.className = "btn disabled";
+    btn.disabled = true;
+    btn.textContent = "等待当前动作完成";
     container.appendChild(btn);
+    parent.appendChild(container);
+    return;
   }
-  else if (state.phase === "await-roll") {
-    const btn = document.createElement("button");
-    btn.className = "btn primary pulse-green";
-    btn.innerHTML = "<span>投掷开始挑战 🎲 (Roll)</span>";
-    btn.addEventListener("click", () => dispatch({ kind: "roll" }));
-    container.appendChild(btn);
-  }
-  else if (state.phase === "await-reroll") {
-    const btn = document.createElement("button");
-    if (selectedRerollIds.length > 0) {
-      // If 1 or more dice are selected to reroll
-      btn.className = "btn pulse-yellow";
-      btn.innerHTML = `<span>确认重投已选 🔄 (Reroll, 剩 ${state.player.rerollsLeft} 次)</span>`;
-      btn.addEventListener("click", () => {
-        const idsToReroll = [...selectedRerollIds];
-        clearSelectedRerollIds();
-        dispatch({ kind: "reroll", ids: idsToReroll });
-      });
-    } else {
-      // If 0 dice are selected, the button becomes "Settle"
-      btn.className = "btn danger pulse-red";
-      btn.innerHTML = "<span>锁定并结算投掷 ◈ (Settle)</span>";
-      btn.addEventListener("click", () => {
-        clearSelectedRerollIds();
-        dispatch({ kind: "reroll", ids: [] });
-      });
-    }
-    container.appendChild(btn);
-  }
-  else if (state.phase === "await-commit") {
-    const btn = document.createElement("button");
-    btn.className = "btn danger pulse-red";
-    btn.innerHTML = "<span>结算本次投掷 ◈ (Commit)</span>";
-    btn.addEventListener("click", () => dispatch({ kind: "commit" }));
-    container.appendChild(btn);
+
+  const drawBtn = document.createElement("button");
+  drawBtn.className = "btn primary pulse-green";
+  drawBtn.disabled = state.player.handDice.length === 0 || options.rolling;
+  drawBtn.innerHTML = state.player.handDice.length === 0
+    ? "<span>骰袋枯竭</span>"
+    : "<span>聆听深渊 🎲</span>";
+  drawBtn.addEventListener("click", () => dispatch({ kind: "draw-die" }));
+  container.appendChild(drawBtn);
+
+  if (hasRolledDice) {
+    const settleBtn = document.createElement("button");
+    settleBtn.className = "btn danger pulse-red";
+    settleBtn.disabled = options.rolling;
+    settleBtn.innerHTML = `<span>${settleText(state)} ◈</span>`;
+    settleBtn.addEventListener("click", () => dispatch({ kind: "commit" }));
+    container.appendChild(settleBtn);
   }
 
   parent.appendChild(container);
-}
 
+}

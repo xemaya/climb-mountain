@@ -1,23 +1,26 @@
 import { describe, it, expect } from "vitest";
 import { initialState } from "../src/game/state";
-import { applyAction } from "../src/game/rules";
+import { resolveTask } from "../src/game/cards";
+import { applyAction, climbScore } from "../src/game/rules";
 import type { GameState } from "../src/game/types";
+
+function playGreedyTurn(s: GameState): GameState {
+  while (s.phase === "await-select" && s.player.handDice.length > 0) {
+    const score = climbScore(s.player.rolled);
+    const result = s.currentCard ? resolveTask(s.currentCard, score) : null;
+    if (s.player.rolled.length >= 2 && result !== null && result > 0) break;
+    if (s.player.rolled.length >= 5) break;
+    s = applyAction(s, { kind: "draw-die" });
+  }
+  return applyAction(s, { kind: "commit" });
+}
 
 function playToEnd(seed: number, maxRounds = 100): GameState {
   let s = initialState(seed);
   for (let r = 0; r < maxRounds; r++) {
     if (s.phase === "won" || s.phase === "lost") return s;
-    if (s.currentCard?.type === "event") {
-      s = applyAction(s, { kind: "advance-event-card" });
-      continue;
-    }
     if (s.phase === "await-select" && s.currentCard) {
-      const min = s.currentCard.minDice === "ALL" ? s.player.handDice.length : s.currentCard.minDice;
-      const ids = s.player.handDice.slice(0, Math.max(min, 1)).map((d) => d.id);
-      s = applyAction(s, { kind: "select-dice", ids });
-      s = applyAction(s, { kind: "roll" });
-      s = applyAction(s, { kind: "reroll", ids: [] });
-      s = applyAction(s, { kind: "commit" });
+      s = playGreedyTurn(s);
     } else {
       throw new Error(`stuck in phase ${s.phase}`);
     }

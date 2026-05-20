@@ -8,20 +8,23 @@ import { renderDicePool } from "./ui/dicePool";
 import { renderActionRail } from "./ui/actionRail";
 import { renderEventLog } from "./ui/eventLog";
 import { openCardModal } from "./ui/cardModal";
-import { openRulesModal } from "./ui/rulesModal";
 import { renderStartMenu } from "./ui/startMenu";
 import { renderEndScreen } from "./ui/endScreen";
 import { renderActiveCard } from "./ui/activeCard";
+import { renderCardIntro } from "./ui/cardIntro";
 import type { Action, GameState } from "./game/types";
 
 let state: GameState | null = null;
+let acknowledgedRound = 0;
+let rolling = false;
 
 function startGame(): void {
   resetBoard();
   document.getElementById("board")!.innerHTML = "";
+  acknowledgedRound = 0;
+  rolling = false;
   state = initialState(Math.floor(Math.random() * 1e6));
   render();
-  maybeAutoResolveEvent();
 }
 
 function showStart(): void {
@@ -45,25 +48,22 @@ function handleTerminal(delayMs: number): boolean {
   return false;
 }
 
-function maybeAutoResolveEvent(): void {
-  if (!state) return;
-  if (state.phase !== "await-select" || state.currentCard?.type !== "event") return;
-  setTimeout(() => {
-    if (!state) return;
-    const postEvent = applyAction(state, { kind: "advance-event-card" });
-    state = { ...state, phase: "resolving" };
-    render();
-    setTimeout(() => {
-      state = postEvent;
-      render();
-      if (handleTerminal(2000)) return;
-      maybeAutoResolveEvent();
-    }, 200);
-  }, 600);
-}
-
 function dispatch(a: Action): void {
   if (!state) return;
+  const roundReady = acknowledgedRound === state.round;
+  if (!roundReady || rolling) return;
+
+  if (a.kind === "draw-die") {
+    rolling = true;
+    render();
+    setTimeout(() => {
+      if (!state) return;
+      state = applyAction(state, a);
+      rolling = false;
+      render();
+    }, 1000);
+    return;
+  }
 
   if (a.kind === "commit") {
     const postCommit = applyAction(state, a);
@@ -73,7 +73,6 @@ function dispatch(a: Action): void {
       state = postCommit;
       render();
       if (handleTerminal(2000)) return;
-      maybeAutoResolveEvent();
     }, 200);
     return;
   }
@@ -84,32 +83,41 @@ function dispatch(a: Action): void {
 
 function render(): void {
   if (!state) return;
+  const roundReady = acknowledgedRound === state.round;
   const appEl = document.getElementById("app");
   if (appEl) {
-    appEl.className = `mobile-frame phase-${state.phase}`;
+    appEl.className = `mobile-frame phase-${state.phase}${roundReady ? " round-ready" : " round-intro"}`;
   }
   renderTopBar(document.getElementById("top-bar")!, state, dispatch);
   renderBoard(document.getElementById("board")!, state);
   renderPlayerPanel(document.getElementById("player-panel")!, state, dispatch);
   renderDemonPanel(document.getElementById("demon-panel")!, state, dispatch);
-  renderActiveCard(document.getElementById("active-card-panel")!, state.currentCard);
-  renderDicePool(document.getElementById("dice-pool")!, state, dispatch);
-  renderActionRail(document.getElementById("action-rail")!, state, dispatch);
+  renderActiveCard(document.getElementById("active-card-panel")!, state);
+  renderDicePool(document.getElementById("dice-pool")!, state, dispatch, {
+    visible: roundReady && (rolling || state.player.rolled.length > 0),
+    rolling,
+  });
+  renderActionRail(document.getElementById("action-rail")!, state, dispatch, {
+    visible: roundReady && state.phase === "await-select",
+    rolling,
+  });
   renderEventLog(document.getElementById("event-log")!, state);
+
+  const modalRoot = document.getElementById("modal-root");
+  if (modalRoot && state.phase === "await-select" && state.currentCard && !roundReady) {
+    renderCardIntro(modalRoot, state.currentCard, () => {
+      if (!state) return;
+      acknowledgedRound = state.round;
+      modalRoot.innerHTML = "";
+      render();
+    });
+  } else if (modalRoot?.firstElementChild?.classList.contains("card-intro-bg")) {
+    modalRoot.innerHTML = "";
+  }
 }
 
 document.addEventListener("open-card-modal", () => {
   if (state?.currentCard) openCardModal(state.currentCard);
 });
-
-const helpBtn = document.createElement("button");
-helpBtn.className = "btn";
-helpBtn.textContent = "规则 ?";
-helpBtn.style.position = "fixed";
-helpBtn.style.right = "var(--s-16)";
-helpBtn.style.top = "var(--s-16)";
-helpBtn.style.zIndex = "50";
-helpBtn.addEventListener("click", openRulesModal);
-document.body.appendChild(helpBtn);
 
 showStart();

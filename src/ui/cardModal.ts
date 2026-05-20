@@ -1,7 +1,9 @@
 import type { Card, DiceCondition } from "../game/types";
+import { cardArtUrl } from "./cardArt";
 
 function conditionText(c: DiceCondition): string {
   switch (c.kind) {
+    case "score-at-least":          return `攀登值 ≥ ${c.n}`;
     case "sum-at-least":            return `点数总和 ≥ ${c.n}`;
     case "sum-at-most":             return `点数总和 ≤ ${c.n}`;
     case "face-count":              return `至少 ${c.atLeast} 颗 ${c.face} 点`;
@@ -26,17 +28,10 @@ export function openCardModal(card: Card): void {
   title.textContent = card.name;
   modal.appendChild(title);
 
-  const artMap: Record<string, string> = {
-    "march-to-death":  "card_march_to_death.png",
-    "armata-stare":    "card_armata_stare.png",
-    "sasna-anomaly":   "card_sasna_anomaly.png",
-    "continuous-pain": "card_continuous_pain.png",
-    "hastur":          "card_hastur.png",
-    "ithaqua":         "card_ithaqua.png",
-  };
-  if (artMap[card.id]) {
+  const artUrl = cardArtUrl(card.id);
+  if (artUrl) {
     const cardArt = document.createElement("img");
-    cardArt.src = `/src/assets/${artMap[card.id]}`;
+    cardArt.src = artUrl;
     cardArt.alt = card.name;
     cardArt.style.width = "100%";
     cardArt.style.maxHeight = "280px";

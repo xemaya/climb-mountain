@@ -28,10 +28,13 @@ export function renderStartMenu(onStart: () => void): void {
 
   // 3. Subtitle / Theme descriptor
   const sub = document.createElement("p");
-  sub.textContent = "克苏鲁雪山 ◈ 登山者 vs 雪魔";
+  sub.textContent = "雪魔在追赶你。比它更快登顶，骰子是你的武器，道具也许能让你多活一轮。";
   sub.style.color = "var(--highlight-blue)";
-  sub.style.fontFamily = "var(--font-num)";
-  sub.style.fontWeight = "700";
+  sub.style.fontFamily = "var(--font-body)";
+  sub.style.fontWeight = "400";
+  sub.style.lineHeight = "1.65";
+  sub.style.maxWidth = "300px";
+  sub.style.margin = "0 auto";
   grid.appendChild(sub);
 
   // 4. Action Buttons Container
@@ -44,21 +47,12 @@ export function renderStartMenu(onStart: () => void): void {
   const startBtn = document.createElement("button");
   startBtn.className = "btn primary";
   startBtn.style.flex = "1";
-  startBtn.textContent = "开启攀登";
+  startBtn.textContent = "开始攀登";
   startBtn.addEventListener("click", () => {
     root.innerHTML = "";
     onStart();
   });
   btnRow.appendChild(startBtn);
-
-  const rulesBtn = document.createElement("button");
-  rulesBtn.className = "btn";
-  rulesBtn.style.flex = "1";
-  rulesBtn.textContent = "规则查阅";
-  rulesBtn.addEventListener("click", () => {
-    import("./rulesModal").then(({ openRulesModal }) => openRulesModal());
-  });
-  btnRow.appendChild(rulesBtn);
 
   grid.appendChild(btnRow);
   modal.appendChild(grid);

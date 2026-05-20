@@ -30,10 +30,55 @@ function rollFace(s: GameState): DieFace {
   return (nextInt(s.rng, 6) + 1) as DieFace;
 }
 
+export function climbScore(dice: Die[]): number {
+  return dice.reduce((total, d) => {
+    if (d.face === null) return total;
+    return total + (d.kind === "madness" ? -d.face : d.face);
+  }, 0);
+}
+
+function cleanRolled(dice: Die[]): Die[] {
+  return dice.map((d) => ({ ...d, face: null }));
+}
+
+function drawNextCard(next: GameState, currentCard: NonNullable<GameState["currentCard"]>): void {
+  next.discard.push(currentCard);
+  if (next.deck.length === 0) {
+    const reshuffled = [...next.discard];
+    for (let i = reshuffled.length - 1; i > 0; i--) {
+      const j = nextInt(next.rng, i + 1);
+      [reshuffled[i], reshuffled[j]] = [reshuffled[j], reshuffled[i]];
+    }
+    next.deck = reshuffled;
+    next.discard = [];
+    next.log.push({ round: next.round, text: `难度牌组洗回` });
+  }
+  next.currentCard = next.deck.shift()!;
+  next.round += 1;
+  next.phase = "await-select";
+  next.player.selected = [];
+  next.player.rerollsLeft = 0;
+}
+
 export function applyAction(state: GameState, action: Action): GameState {
   switch (action.kind) {
     case "start-game":
       return state;
+
+    case "draw-die": {
+      if (state.phase !== "await-select") return state;
+      if (!state.currentCard || state.player.handDice.length === 0) return state;
+
+      const next = clone(state);
+      const index = nextInt(next.rng, next.player.handDice.length);
+      const [die] = next.player.handDice.splice(index, 1);
+      next.player.rolled.push({ ...die, face: rollFace(next) });
+      next.log.push({
+        round: next.round,
+        text: `你掷出 1 颗${die.kind === "madness" ? "疯狂骰" : "普通骰"}`,
+      });
+      return next;
+    }
 
     case "select-dice": {
       if (state.phase !== "await-select") return state;
@@ -87,35 +132,18 @@ export function applyAction(state: GameState, action: Action): GameState {
     }
 
     case "commit": {
-      if (state.phase !== "await-commit") return state;
+      if (state.phase !== "await-select" && state.phase !== "await-commit") return state;
       const card = state.currentCard;
       if (!card) return state;
+      if (state.player.rolled.length === 0) return state;
       const next = clone(state);
 
-      // ===== C-phase: sanity check =====
-      const madnessFaces = new Set<DieFace>();
-      for (const d of next.player.rolled) {
-        if (d.kind === "madness" && d.face !== null) madnessFaces.add(d.face);
-      }
-      const remaining: Die[] = [];
-      for (const d of next.player.rolled) {
-        const returnToHand =
-          d.kind === "madness" ||
-          (d.kind === "color" && d.face !== null && madnessFaces.has(d.face));
-        if (returnToHand) {
-          next.player.handDice.push({ ...d, face: null });
-        } else {
-          remaining.push(d);
-        }
-      }
-      next.player.rolled = remaining;
-
-      // ===== D-phase: move pawn =====
-      const facesForResolve: DieFace[] = remaining
+      const score = climbScore(next.player.rolled);
+      const facesForResolve: DieFace[] = next.player.rolled
         .map((d) => d.face)
         .filter((f): f is DieFace => f !== null);
 
-      const taskResult = resolveTask(card, facesForResolve);
+      const taskResult = resolveTask(card, score, facesForResolve);
       let slid = false;
       let newMadness = false;
 
@@ -129,7 +157,7 @@ export function applyAction(state: GameState, action: Action): GameState {
           next.madnessStock -= 1;
           newMadness = true;
         }
-        next.log.push({ round: next.round, text: `你滑落 ${balance.SLIDE_BACK_CELLS} 格${newMadness ? "、获得 1 颗疯狂骰" : ""}` });
+        next.log.push({ round: next.round, text: `攀登值 ${score} 未达标，你滑落 ${balance.SLIDE_BACK_CELLS} 格${newMadness ? "、获得 1 颗疯狂骰" : ""}` });
       } else if (taskResult < 0) {
         const newCell = Math.max(1, next.player.cell + taskResult);
         next.player.cell = newCell;
@@ -140,23 +168,24 @@ export function applyAction(state: GameState, action: Action): GameState {
           next.madnessStock -= 1;
           newMadness = true;
         }
-        next.log.push({ round: next.round, text: `事件滑落 ${-taskResult} 格${newMadness ? "、获得 1 颗疯狂骰" : ""}` });
+        next.log.push({ round: next.round, text: `攀登值 ${score} 触发事件滑落 ${-taskResult} 格${newMadness ? "、获得 1 颗疯狂骰" : ""}` });
       } else {
         next.player.cell = next.player.cell + taskResult;
-        next.log.push({ round: next.round, text: `你前进 ${taskResult} 格` });
+        next.log.push({ round: next.round, text: `攀登值 ${score}，你前进 ${taskResult} 格` });
       }
 
-      // Move remaining rolled dice back to hand (face cleared)
-      for (const d of remaining) {
-        next.player.handDice.push({ ...d, face: null });
-      }
+      // Return rolled dice to the bag, face cleared. New madness from failure stays too.
+      next.player.handDice.push(...cleanRolled(next.player.rolled));
       next.player.rolled = [];
 
       // ===== Demon advance =====
       const isEvent = card.type === "event";
       const advance = computeDemonAdvance({ slid, newMadness, isEvent });
       next.demon.cell = applyDemonAdvance(next.demon.cell, next.player.cell, advance);
-      next.log.push({ round: next.round, text: `雪魔推进 +${advance}（基线 1${slid ? "、滑落 1" : ""}${newMadness ? "、新疯狂 1" : ""}${isEvent ? "、事件 2" : ""}）` });
+      next.log.push({
+        round: next.round,
+        text: `雪魔推进 +${advance}（基线 1${slid ? "、滑落 1" : ""}${newMadness && balance.DEMON_BONUS_ON_NEW_MADNESS > 0 ? `、新疯狂 ${balance.DEMON_BONUS_ON_NEW_MADNESS}` : ""}${isEvent ? "、事件 1" : ""}）`,
+      });
 
       // ===== Win/Lose check (LOSE wins tiebreak) =====
       if (next.demon.cell >= next.player.cell) {
@@ -169,21 +198,7 @@ export function applyAction(state: GameState, action: Action): GameState {
       }
 
       // ===== Draw next card =====
-      next.discard.push(card);
-      if (next.deck.length === 0) {
-        const reshuffled = [...next.discard];
-        for (let i = reshuffled.length - 1; i > 0; i--) {
-          const j = nextInt(next.rng, i + 1);
-          [reshuffled[i], reshuffled[j]] = [reshuffled[j], reshuffled[i]];
-        }
-        next.deck = reshuffled;
-        next.discard = [];
-        next.log.push({ round: next.round, text: `难度牌组洗回` });
-      }
-      next.currentCard = next.deck.shift()!;
-      next.round += 1;
-      next.phase = "await-select";
-      next.player.selected = [];
+      drawNextCard(next, card);
       return next;
     }
 
@@ -191,12 +206,11 @@ export function applyAction(state: GameState, action: Action): GameState {
       if (state.phase !== "await-select") return state;
       const card = state.currentCard;
       if (!card || card.type !== "event") return state;
-      const allIds = state.player.handDice.map((d) => d.id);
-      const sSel = applyAction(state, { kind: "select-dice", ids: allIds });
-      const sRoll = applyAction(sSel, { kind: "roll" });
-      const sSkip = applyAction(sRoll, { kind: "reroll", ids: [] });
-      const sCommit = applyAction(sSkip, { kind: "commit" });
-      return sCommit;
+      let next = state;
+      while (next.phase === "await-select" && next.player.handDice.length > 0) {
+        next = applyAction(next, { kind: "draw-die" });
+      }
+      return applyAction(next, { kind: "commit" });
     }
   }
 }

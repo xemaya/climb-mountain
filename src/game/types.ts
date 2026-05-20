@@ -17,6 +17,7 @@ export type Die = {
 // =============================================================================
 
 export type DiceCondition =
+  | { kind: "score-at-least"; n: number }
   | { kind: "sum-at-least"; n: number }
   | { kind: "sum-at-most"; n: number }
   | { kind: "face-count"; face: DieFace; atLeast: number }
@@ -35,8 +36,11 @@ export type Card = {
   id: string;
   name: string;
   type: CardType;
-  minDice: number | "ALL"; // ALL = auto use all dice (event cards)
-  tasks: Task[]; // normal: 2-3 tiers, evaluated highest-first; event: each task is independently applied
+  minDice: number | "ALL"; // legacy display hook; MVP blackjack flow ignores manual preselection
+  tasks: Task[]; // score tiers, evaluated highest-first
+  hint?: string;
+  lore?: string;
+  eventRule?: string;
 };
 
 // =============================================================================
@@ -93,6 +97,7 @@ export type GameState = {
 
 export type Action =
   | { kind: "start-game"; seed: number }
+  | { kind: "draw-die" } // draw one die from the bag and roll it
   | { kind: "select-dice"; ids: DieId[] } // replace current selection set
   | { kind: "roll" } // initial roll
   | { kind: "reroll"; ids: DieId[] } // subset of rolled

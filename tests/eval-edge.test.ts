@@ -1,6 +1,18 @@
 import { describe, it, expect } from "vitest";
 import { initialState } from "../src/game/state";
-import { applyAction } from "../src/game/rules";
+import { resolveTask } from "../src/game/cards";
+import { applyAction, climbScore } from "../src/game/rules";
+
+function playGreedyTurn(s: ReturnType<typeof initialState>) {
+  while (s.phase === "await-select" && s.player.handDice.length > 0) {
+    const score = climbScore(s.player.rolled);
+    const result = s.currentCard ? resolveTask(s.currentCard, score) : null;
+    if (s.player.rolled.length >= 2 && result !== null && result > 0) break;
+    if (s.player.rolled.length >= 5) break;
+    s = applyAction(s, { kind: "draw-die" });
+  }
+  return applyAction(s, { kind: "commit" });
+}
 
 describe("edge cases", () => {
   it("deck reshuffles after exhaustion", () => {
@@ -8,16 +20,7 @@ describe("edge cases", () => {
     let s = s0;
     let turns = 0;
     while (s.phase !== "won" && s.phase !== "lost" && turns < 30) {
-      if (s.currentCard?.type === "event") {
-        s = applyAction(s, { kind: "advance-event-card" });
-      } else {
-        const min = s.currentCard!.minDice === "ALL" ? s.player.handDice.length : (s.currentCard!.minDice as number);
-        const ids = s.player.handDice.slice(0, Math.max(min, 1)).map((d) => d.id);
-        s = applyAction(s, { kind: "select-dice", ids });
-        s = applyAction(s, { kind: "roll" });
-        s = applyAction(s, { kind: "reroll", ids: [] });
-        s = applyAction(s, { kind: "commit" });
-      }
+      s = playGreedyTurn(s);
       turns++;
       if (s.phase !== "won" && s.phase !== "lost") {
         expect(s.currentCard).not.toBeNull();
@@ -30,16 +33,7 @@ describe("edge cases", () => {
     let s = s0;
     let turns = 0;
     while (s.phase !== "won" && s.phase !== "lost" && turns < 40) {
-      if (s.currentCard?.type === "event") {
-        s = applyAction(s, { kind: "advance-event-card" });
-      } else {
-        const min = s.currentCard!.minDice === "ALL" ? s.player.handDice.length : (s.currentCard!.minDice as number);
-        const ids = s.player.handDice.slice(0, Math.max(min, 1)).map((d) => d.id);
-        s = applyAction(s, { kind: "select-dice", ids });
-        s = applyAction(s, { kind: "roll" });
-        s = applyAction(s, { kind: "reroll", ids: [] });
-        s = applyAction(s, { kind: "commit" });
-      }
+      s = playGreedyTurn(s);
       expect(s.demon.cell).toBeLessThanOrEqual(s.player.cell);
       turns++;
     }
@@ -49,16 +43,7 @@ describe("edge cases", () => {
     let s = initialState(1);
     let turns = 0;
     while (s.phase !== "won" && s.phase !== "lost" && turns < 40) {
-      if (s.currentCard?.type === "event") {
-        s = applyAction(s, { kind: "advance-event-card" });
-      } else {
-        const min = s.currentCard!.minDice === "ALL" ? s.player.handDice.length : (s.currentCard!.minDice as number);
-        const ids = s.player.handDice.slice(0, Math.max(min, 1)).map((d) => d.id);
-        s = applyAction(s, { kind: "select-dice", ids });
-        s = applyAction(s, { kind: "roll" });
-        s = applyAction(s, { kind: "reroll", ids: [] });
-        s = applyAction(s, { kind: "commit" });
-      }
+      s = playGreedyTurn(s);
       expect(s.madnessStock).toBeGreaterThanOrEqual(0);
       turns++;
     }

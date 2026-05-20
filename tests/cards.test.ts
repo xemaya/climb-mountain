@@ -38,24 +38,24 @@ describe("cards", () => {
     expect(evaluateCondition({ kind: "distinct-faces", atLeast: 3 }, faces([1, 2, 2, 1]))).toBe(false);
   });
 
-  it("resolveTask returns highest-tier advance for normal card", () => {
+  it("resolveTask returns highest score tier for a normal card", () => {
     const card = allCards.find((c) => c.id === "armata-stare")!;
-    expect(resolveTask(card, faces([6]))).toBe(1);
-    expect(resolveTask(card, faces([6, 6, 1]))).toBe(3);
-    expect(resolveTask(card, faces([2, 2]))).toBe(null);
+    expect(resolveTask(card, 7)).toBe(null);
+    expect(resolveTask(card, 8)).toBe(1);
+    expect(resolveTask(card, 13)).toBe(3);
   });
 
-  it("resolveTask for event card sum-thresholds", () => {
+  it("resolveTask for event card score thresholds", () => {
     const event = allCards.find((c) => c.id === "hastur")!;
-    expect(resolveTask(event, faces([6, 6, 6]))).toBe(3);
-    expect(resolveTask(event, faces([1, 2]))).toBe(-2);
-    expect(resolveTask(event, faces([3, 3, 3]))).toBe(0);
+    expect(resolveTask(event, 9)).toBe(null);
+    expect(resolveTask(event, 10)).toBe(2);
+    expect(resolveTask(event, 15)).toBe(4);
   });
 
-  it("ithaqua slide on ≤ 2 distinct faces", () => {
+  it("ithaqua uses climb score tiers", () => {
     const event = allCards.find((c) => c.id === "ithaqua")!;
-    expect(resolveTask(event, faces([1, 1, 1]))).toBe(-2);
-    expect(resolveTask(event, faces([1, 2, 3, 4, 5]))).toBe(3);
-    expect(resolveTask(event, faces([1, 1, 2, 3]))).toBe(0);
+    expect(resolveTask(event, 8)).toBe(null);
+    expect(resolveTask(event, 9)).toBe(2);
+    expect(resolveTask(event, 14)).toBe(3);
   });
 });

@@ -6,7 +6,8 @@
 //   --report                → after Mode A, write balance report to docs/balance/
 
 import { initialState } from "../src/game/state";
-import { applyAction } from "../src/game/rules";
+import { resolveTask } from "../src/game/cards";
+import { applyAction, climbScore } from "../src/game/rules";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,15 +36,19 @@ function playOne(seed: number, verbose = false): GameResult {
       console.log(`r${s.round} phase=${s.phase} player=${s.player.cell} demon=${s.demon.cell} card=${s.currentCard?.name}`);
     }
     const before = s;
-    if (s.currentCard?.type === "event") {
-      s = applyAction(s, { kind: "advance-event-card" });
-    } else if (s.currentCard && s.phase === "await-select") {
-      // Baseline policy per spec §5.2: select ALL rollable hand dice (not just minDice).
-      // This is the "difficulty floor" — a real player picking blindly.
-      const ids = s.player.handDice.map((d) => d.id);
-      s = applyAction(s, { kind: "select-dice", ids });
-      s = applyAction(s, { kind: "roll" });
-      s = applyAction(s, { kind: "reroll", ids: [] });
+    if (s.currentCard && s.phase === "await-select") {
+      const card = s.currentCard;
+      while (s.phase === "await-select" && s.player.handDice.length > 0) {
+        const score = climbScore(s.player.rolled);
+        const result = resolveTask(card, score);
+        if (s.player.rolled.length >= 2 && result !== null && result > 0) break;
+        if (s.player.rolled.length >= 5) break;
+        s = applyAction(s, { kind: "draw-die" });
+        if (verbose) {
+          const last = s.player.rolled.at(-1);
+          console.log(`  draw ${last?.kind}:${last?.face} score=${climbScore(s.player.rolled)}`);
+        }
+      }
       s = applyAction(s, { kind: "commit" });
     } else {
       throw new Error(`stuck in phase ${s.phase}`);

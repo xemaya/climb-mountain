@@ -1,7 +1,10 @@
-import type { Card, DiceCondition } from "../game/types";
+import { climbScore } from "../game/rules";
+import type { DiceCondition, GameState, Task } from "../game/types";
+import { cardArtUrl } from "./cardArt";
 
 function conditionText(c: DiceCondition): string {
   switch (c.kind) {
+    case "score-at-least":          return `攀登值 ≥ ${c.n}`;
     case "sum-at-least":            return `总和 ≥ ${c.n}`;
     case "sum-at-most":             return `总和 ≤ ${c.n}`;
     case "face-count":              return `至少 ${c.atLeast} 颗 ${c.face} 点`;
@@ -11,9 +14,14 @@ function conditionText(c: DiceCondition): string {
   }
 }
 
-export function renderActiveCard(parent: HTMLElement, card: Card | null): void {
+function scoreTarget(task: Task): number | null {
+  return task.requires.kind === "score-at-least" ? task.requires.n : null;
+}
+
+export function renderActiveCard(parent: HTMLElement, state: GameState): void {
   if (!parent) return;
 
+  const card = state.currentCard;
   parent.innerHTML = "";
   parent.className = "stone-panel active-card-container";
 
@@ -46,21 +54,13 @@ export function renderActiveCard(parent: HTMLElement, card: Card | null): void {
   wrapper.appendChild(title);
 
   // 2. Artwork Frame
-  const artMap: Record<string, string> = {
-    "march-to-death":  "card_march_to_death.png",
-    "armata-stare":    "card_armata_stare.png",
-    "sasna-anomaly":   "card_sasna_anomaly.png",
-    "continuous-pain": "card_continuous_pain.png",
-    "hastur":          "card_hastur.png",
-    "ithaqua":         "card_ithaqua.png",
-  };
-  
-  if (artMap[card.id]) {
+  const artUrl = cardArtUrl(card.id);
+  if (artUrl) {
     const frame = document.createElement("div");
     frame.className = "card-illustration-frame";
     
     const img = document.createElement("img");
-    img.src = `/src/assets/${artMap[card.id]}`;
+    img.src = artUrl;
     img.alt = card.name;
     frame.appendChild(img);
     
@@ -70,24 +70,34 @@ export function renderActiveCard(parent: HTMLElement, card: Card | null): void {
   // 3. Card Meta Details
   const meta = document.createElement("div");
   meta.className = "active-card-meta";
-  const typeText = card.type === "event" ? "事件牌 (自动骰)" : "普通牌";
-  const minText = card.minDice === "ALL" ? "全部" : `${card.minDice} 颗`;
-  meta.innerHTML = `<span>类型: ${typeText}</span> <span>最少需投: ${minText}</span>`;
+  const typeText = card.type === "event" ? "事件牌" : "普通牌";
+  const score = climbScore(state.player.rolled);
+  const diceLeft = state.player.handDice.length;
+  meta.innerHTML = `<span>${typeText}</span> <span>攀登值: ${score}</span> <span>骰袋: ${diceLeft}</span>`;
   wrapper.appendChild(meta);
+
+  if (card.hint || card.eventRule) {
+    const hint = document.createElement("div");
+    hint.className = "active-card-hint";
+    hint.textContent = card.eventRule ?? card.hint ?? "";
+    wrapper.appendChild(hint);
+  }
 
   // 4. Tasks/Conditions list
   const tasksList = document.createElement("div");
   tasksList.className = "active-card-tasks";
 
-  const sorted = card.type === "normal"
-    ? [...card.tasks].sort((a, b) => b.advance - a.advance)
-    : card.tasks;
+  const sorted = [...card.tasks].sort((a, b) => b.advance - a.advance);
 
   for (const t of sorted) {
     const item = document.createElement("div");
     const isSlide = t.advance < 0;
+    const target = scoreTarget(t);
     
     item.className = "task-item " + (isSlide ? "penalty-cost" : "success-reward");
+    if (!isSlide && target !== null && score >= target) {
+      item.className += " achieved";
+    }
     
     const req = document.createElement("span");
     req.className = "task-req";
@@ -122,5 +132,26 @@ export function renderActiveCard(parent: HTMLElement, card: Card | null): void {
   }
 
   wrapper.appendChild(tasksList);
+
+  if (state.player.rolled.length > 0) {
+    const nextTier = [...card.tasks]
+      .sort((a, b) => (scoreTarget(a) ?? 0) - (scoreTarget(b) ?? 0))
+      .find((t) => {
+        const target = scoreTarget(t);
+        return t.advance > 0 && target !== null && score < target;
+      });
+    const readout = document.createElement("div");
+    readout.className = "active-card-readout";
+    const nextTarget = nextTier ? scoreTarget(nextTier) : null;
+    if (nextTier && nextTarget !== null) {
+      readout.textContent = `下一档还差 ${nextTarget - score} 点。再听深渊，或封印此刻。`;
+    } else if (score > 0) {
+      readout.textContent = "已经达成本牌最高可见收益，可以封印此刻。";
+    } else {
+      readout.textContent = "当前未达标，封印会滑落。";
+    }
+    wrapper.appendChild(readout);
+  }
+
   parent.appendChild(wrapper);
 }
