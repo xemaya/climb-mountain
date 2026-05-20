@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Dice of Madness · 克苏鲁雪山</title>
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body>
+    <div id="app" class="mobile-frame">
+      <div id="top-bar" class="mobile-header"></div>
+      <div id="board" class="mobile-board"></div>
+      <div id="thumb-panel" class="mobile-controls-panel">
+        <div id="active-card-panel"></div>
+        <div id="dice-pool"></div>
+        <div id="action-rail"></div>
+      </div>
+      
+      <!-- Overlay Modals for stats & log -->
+      <div id="player-panel-overlay" class="overlay-modal-container" style="display: none;">
+        <div id="player-panel"></div>
+      </div>
+      <div id="demon-panel-overlay" class="overlay-modal-container" style="display: none;">
+        <div id="demon-panel"></div>
+      </div>
+      <div id="event-log-overlay" class="overlay-modal-container" style="display: none;">
+        <div id="event-log"></div>
+      </div>
+    </div>
+    <div id="modal-root"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
