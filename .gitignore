@@ -2,6 +2,5 @@ node_modules
 dist
 *.log
 .DS_Store
-src/assets/*.png
 docs/balance/*.md
 !docs/balance/.gitkeep
