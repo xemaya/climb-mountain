@@ -37,7 +37,7 @@ export function renderBoard(parent: HTMLElement, state: GameState): void {
     // 1. Render the Death Zone alert text (§05)
     const alert = document.createElement("div");
     alert.className = "board-death-alert";
-    alert.textContent = "死亡区域 (7格及以上，6点禁用)";
+    alert.textContent = "死亡区域，6点禁用";
     parent.appendChild(alert);
 
     // 1.5. Render Event Log floating trigger (📜)
@@ -133,6 +133,17 @@ export function renderBoard(parent: HTMLElement, state: GameState): void {
   if (demonPawn) {
     demonPawn.style.left = `calc(${dCoord.left}% + ${dOffsetLeft}px)`;
     demonPawn.style.bottom = `${dCoord.bottom}%`;
+  }
+
+  // 6. Camera zoom focus during the resolving (climbing) phase
+  if (state.phase === "resolving") {
+    parent.classList.add("climbing-zoom");
+    const avgLeft = (pCoord.left + dCoord.left) / 2;
+    const avgBottom = (pCoord.bottom + dCoord.bottom) / 2;
+    parent.style.transformOrigin = `${avgLeft}% ${100 - avgBottom}%`;
+  } else {
+    parent.classList.remove("climbing-zoom");
+    parent.style.transformOrigin = "";
   }
 }
 

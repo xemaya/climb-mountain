@@ -67,13 +67,33 @@ function dispatch(a: Action): void {
 
   if (a.kind === "commit") {
     const postCommit = applyAction(state, a);
-    state = { ...state, phase: "resolving" };
+    
+    // Set to the next round state but clamp phase to "resolving" (climbing active)
+    state = { 
+      ...postCommit, 
+      phase: "resolving" 
+    };
     render();
+    
+    // Allow pawns to complete their move animation and camera to zoom in/out
     setTimeout(() => {
-      state = postCommit;
+      if (!state) return;
+      
+      // If the game is won or lost, proceed to the terminal screen
+      if (postCommit.phase === "won" || postCommit.phase === "lost") {
+        state = postCommit;
+        render();
+        handleTerminal(0);
+        return;
+      }
+      
+      // Otherwise, unlock the "await-select" phase, allowing card intro modal to trigger
+      state = {
+        ...postCommit,
+        phase: "await-select"
+      };
       render();
-      if (handleTerminal(2000)) return;
-    }, 200);
+    }, 2500);
     return;
   }
 
