@@ -1,3 +1,5 @@
+import { itemDefinition } from "../game/items";
+import { getLevelConfig } from "../game/levels";
 import type { Action, GameState } from "../game/types";
 
 export function renderPlayerPanel(
@@ -58,8 +60,14 @@ export function renderPlayerPanel(
 
   const colorN = state.player.handDice.filter((d) => d.kind === "color").length;
   const madN = state.player.handDice.filter((d) => d.kind === "madness").length;
+  const config = getLevelConfig(state.level);
+  const items = state.player.items.map((item) => itemDefinition(item.id).shortName).join(" / ") || "无";
 
   stats.innerHTML = `
+    <div class="char-stat-row">
+      <span>关卡</span>
+      <strong style="color: var(--warning-yellow); font-size: 14px;">${state.level} · ${config.name}</strong>
+    </div>
     <div class="char-stat-row">
       <span>位置</span>
       <strong style="color: var(--highlight-blue); font-size: 14px;">${state.player.cell} / 14</strong>
@@ -73,10 +81,10 @@ export function renderPlayerPanel(
       <strong style="color: var(--snow-grey); font-size: 14px;">${colorN}</strong>
     </div>
     <div class="char-stat-row">
-      <span>冰斧</span>
-      <strong style="color: var(--warning-yellow);">1 / 1 ⛏</strong>
+      <span>道具</span>
+      <strong style="color: var(--warning-yellow);">${items}</strong>
     </div>
-    <div class="badge-tag">先手优势</div>
+    <div class="badge-tag">第 ${state.level} 关</div>
   `;
 
   card.appendChild(stats);

@@ -1,4 +1,5 @@
 import type { Action, GameState } from "../game/types";
+import { balance } from "../game/balance";
 
 function toggleOverlay(id: string): void {
   const overlay = document.getElementById(id);
@@ -30,43 +31,42 @@ export function renderTopBar(
   parent.innerHTML = "";
   parent.className = "top-bar";
 
-  // 1. Logo Brand
-  const logo = document.createElement("div");
-  logo.className = "logo";
-  logo.textContent = "MADNESS";
-  parent.appendChild(logo);
+  const playerPct = Math.min(100, Math.max(0, (state.player.cell / balance.GOAL_CELL) * 100));
+  const demonPct = Math.min(100, Math.max(0, (state.demon.cell / balance.GOAL_CELL) * 100));
 
-  // 2. Avatar Triggers Group
-  const triggers = document.createElement("div");
-  triggers.className = "avatar-triggers";
-
-  // Player Avatar Trigger
-  const pAvatar = document.createElement("div");
-  pAvatar.className = "avatar-badge player";
+  const pAvatar = document.createElement("button");
+  pAvatar.className = "summit-orb player";
   pAvatar.innerHTML = `
     <img src="/src/assets/climber.png" alt="Player">
-    <span class="cell-num">${state.player.cell}</span>
+    <span class="orb-label">YOU</span>
+    <strong>${state.player.cell}</strong>
   `;
   pAvatar.addEventListener("click", () => toggleOverlay("player-panel-overlay"));
-  triggers.appendChild(pAvatar);
+  parent.appendChild(pAvatar);
 
-  // Demon Avatar Trigger
-  const dAvatar = document.createElement("div");
-  dAvatar.className = "avatar-badge demon";
+  const progress = document.createElement("div");
+  progress.className = "summit-progress";
+  progress.innerHTML = `
+    <div class="summit-title">DISTANCE TO SUMMIT</div>
+    <div class="summit-count">${state.player.cell} / ${balance.GOAL_CELL - 1}</div>
+    <div class="summit-track">
+      <div class="summit-fill player" style="width: ${playerPct}%"></div>
+      <div class="summit-fill beast" style="width: ${demonPct}%"></div>
+      <div class="summit-marker" style="left: ${playerPct}%"></div>
+    </div>
+    <div class="summit-round">L ${state.level} · R ${state.round}</div>
+  `;
+  parent.appendChild(progress);
+
+  const dAvatar = document.createElement("button");
+  dAvatar.className = "summit-orb beast";
   dAvatar.innerHTML = `
     <img src="/src/assets/snow_demon.png" alt="Demon">
-    <span class="cell-num">${state.demon.cell}</span>
+    <span class="orb-label">BEAST</span>
+    <strong>${state.demon.cell}</strong>
   `;
   dAvatar.addEventListener("click", () => toggleOverlay("demon-panel-overlay"));
-  triggers.appendChild(dAvatar);
-
-  parent.appendChild(triggers);
-
-  // 3. Beautiful Runic Round counter badge
-  const roundBadge = document.createElement("div");
-  roundBadge.className = "round-badge";
-  roundBadge.textContent = `R ${state.round}`;
-  parent.appendChild(roundBadge);
+  parent.appendChild(dAvatar);
 
   void dispatch;
 }

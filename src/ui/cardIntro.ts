@@ -1,5 +1,5 @@
 import type { Card, DiceCondition } from "../game/types";
-import { cardArtUrl } from "./cardArt";
+import { itemDefinition } from "../game/items";
 
 function conditionText(c: DiceCondition): string {
   switch (c.kind) {
@@ -15,45 +15,43 @@ function conditionText(c: DiceCondition): string {
 
 export function renderCardIntro(root: HTMLElement, card: Card, onConfirm: () => void): void {
   root.innerHTML = "";
+  let started = false;
 
   const bg = document.createElement("div");
-  bg.className = "modal-bg card-intro-bg";
+  bg.className = "card-intro-bg";
 
   const modal = document.createElement("div");
-  modal.className = "modal card-intro-modal";
+  modal.className = "card-intro-modal omen-seal";
   modal.addEventListener("click", (e) => e.stopPropagation());
 
-  const art = cardArtUrl(card.id);
-  if (art) {
-    const frame = document.createElement("div");
-    frame.className = "card-intro-art-frame";
-    const img = document.createElement("img");
-    img.className = "card-intro-art";
-    img.src = art;
-    img.alt = card.name;
-    frame.appendChild(img);
-    modal.appendChild(frame);
-  }
+  const prompt = document.createElement("div");
+  prompt.className = "scroll-open-prompt";
+  prompt.textContent = "触碰封印";
+  modal.appendChild(prompt);
+
+  const content = document.createElement("div");
+  content.className = "card-intro-content";
 
   const type = document.createElement("div");
   type.className = `card-intro-type ${card.type}`;
   type.textContent = card.type === "event" ? "事件牌" : "危机牌";
-  modal.appendChild(type);
+  content.appendChild(type);
 
   const title = document.createElement("h2");
   title.textContent = card.name;
-  modal.appendChild(title);
+  content.appendChild(title);
 
   const lore = document.createElement("p");
   lore.className = "card-intro-lore";
   lore.textContent = card.lore ?? card.hint ?? "";
-  modal.appendChild(lore);
+  content.appendChild(lore);
 
   if (card.eventRule) {
     const rule = document.createElement("div");
     rule.className = "card-intro-rule";
-    rule.textContent = card.eventRule;
-    modal.appendChild(rule);
+    const reward = card.itemReward ? ` 成功奖励：${itemDefinition(card.itemReward).name}。` : "";
+    rule.textContent = `${card.eventRule}${reward}`;
+    content.appendChild(rule);
   }
 
   const target = document.createElement("div");
@@ -65,13 +63,28 @@ export function renderCardIntro(root: HTMLElement, card: Card, onConfirm: () => 
     row.innerHTML = `<span>${conditionText(task.requires)}</span><strong>${sign}${task.advance} 格</strong>`;
     target.appendChild(row);
   }
-  modal.appendChild(target);
+  content.appendChild(target);
+  modal.appendChild(content);
 
-  const confirm = document.createElement("button");
-  confirm.className = "btn primary card-intro-confirm";
-  confirm.textContent = "确认，开始本轮";
-  confirm.addEventListener("click", onConfirm);
-  modal.appendChild(confirm);
+  const openAndDock = (): void => {
+    if (started) return;
+    started = true;
+    modal.classList.remove("omen-seal");
+    modal.classList.add("omen-open");
+    setTimeout(() => {
+      bg.classList.add("card-intro-morphing");
+      modal.classList.add("omen-etching");
+    }, 1200);
+    setTimeout(() => {
+      onConfirm();
+    }, 1620);
+    setTimeout(() => {
+      root.innerHTML = "";
+    }, 1780);
+  };
+
+  modal.addEventListener("click", openAndDock);
+  bg.addEventListener("click", openAndDock);
 
   bg.appendChild(modal);
   root.appendChild(bg);

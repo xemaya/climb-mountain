@@ -1,4 +1,5 @@
 import type { Card, DiceCondition } from "../game/types";
+import { itemDefinition } from "../game/items";
 import { cardArtUrl } from "./cardArt";
 
 function conditionText(c: DiceCondition): string {
@@ -46,7 +47,8 @@ export function openCardModal(card: Card): void {
   meta.style.fontSize = "12px";
   meta.style.opacity = "0.8";
   meta.style.marginBottom = "var(--s-16)";
-  meta.textContent = `${card.type === "event" ? "事件牌" : "普通牌"} · 最少 ${card.minDice}`;
+  const reward = card.itemReward ? ` · 奖励 ${itemDefinition(card.itemReward).name}` : "";
+  meta.textContent = `${card.type === "event" ? "事件牌" : "普通牌"} · 最少 ${card.minDice}${reward}`;
   modal.appendChild(meta);
 
   const tasks = document.createElement("ol");

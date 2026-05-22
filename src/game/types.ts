@@ -13,6 +13,29 @@ export type Die = {
 };
 
 // =============================================================================
+// Items
+// =============================================================================
+
+export type ItemId =
+  | "rope-anchor"
+  | "frost-ember"
+  | "salt-needle"
+  | "black-seal"
+  | "bone-piton";
+
+export type InventoryItem = {
+  uid: string;
+  id: ItemId;
+};
+
+export type RoundEffects = {
+  scoreBonus: number;
+  preventSlide: boolean;
+  demonAdvanceDelta: number;
+  extraAdvance: number;
+};
+
+// =============================================================================
 // Cards
 // =============================================================================
 
@@ -41,6 +64,7 @@ export type Card = {
   hint?: string;
   lore?: string;
   eventRule?: string;
+  itemReward?: ItemId;
 };
 
 // =============================================================================
@@ -62,6 +86,7 @@ export type Player = {
   selected: DieId[]; // ids chosen for this turn (subset of handDice)
   rolled: Die[]; // dice that were rolled this turn (moved out of handDice for the turn)
   rerollsLeft: number;
+  items: InventoryItem[];
 };
 
 export type Demon = {
@@ -80,6 +105,7 @@ export type RngState = {
 
 export type GameState = {
   phase: Phase;
+  level: number; // 1-based campaign level
   player: Player;
   demon: Demon;
   madnessStock: number; // remaining madness dice in supply
@@ -87,6 +113,7 @@ export type GameState = {
   discard: Card[];
   currentCard: Card | null;
   round: number; // starts at 1
+  roundEffects: RoundEffects;
   log: LogEntry[];
   rng: RngState;
 };
@@ -101,5 +128,6 @@ export type Action =
   | { kind: "select-dice"; ids: DieId[] } // replace current selection set
   | { kind: "roll" } // initial roll
   | { kind: "reroll"; ids: DieId[] } // subset of rolled
+  | { kind: "use-item"; uid: string }
   | { kind: "commit" } // C → D → demon-advance → check win/loss → draw next card
   | { kind: "advance-event-card" }; // when next card is event, system invokes this to auto-resolve

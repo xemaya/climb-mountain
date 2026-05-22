@@ -10,19 +10,20 @@ import { renderEventLog } from "./ui/eventLog";
 import { openCardModal } from "./ui/cardModal";
 import { renderStartMenu } from "./ui/startMenu";
 import { renderEndScreen } from "./ui/endScreen";
-import { renderActiveCard } from "./ui/activeCard";
 import { renderCardIntro } from "./ui/cardIntro";
 import type { Action, GameState } from "./game/types";
 
 let state: GameState | null = null;
 let acknowledgedRound = 0;
 let rolling = false;
+let diceFlyUp = false;
 
 function startGame(): void {
   resetBoard();
   document.getElementById("board")!.innerHTML = "";
   acknowledgedRound = 0;
   rolling = false;
+  diceFlyUp = false;
   state = initialState(Math.floor(Math.random() * 1e6));
   render();
 }
@@ -30,7 +31,7 @@ function startGame(): void {
 function showStart(): void {
   state = null;
   document
-    .querySelectorAll("#top-bar, #board, #player-panel, #demon-panel, #dice-pool, #action-rail, #event-log, #active-card-panel")
+    .querySelectorAll("#top-bar, #board, #player-panel, #demon-panel, #dice-pool, #action-rail, #event-log")
     .forEach((el) => {
       (el as HTMLElement).innerHTML = "";
     });
@@ -55,12 +56,18 @@ function dispatch(a: Action): void {
 
   if (a.kind === "draw-die") {
     rolling = true;
+    diceFlyUp = false;
     render();
     setTimeout(() => {
       if (!state) return;
       state = applyAction(state, a);
       rolling = false;
+      diceFlyUp = true;
       render();
+      setTimeout(() => {
+        diceFlyUp = false;
+        render();
+      }, 850);
     }, 1000);
     return;
   }
@@ -112,10 +119,10 @@ function render(): void {
   renderBoard(document.getElementById("board")!, state);
   renderPlayerPanel(document.getElementById("player-panel")!, state, dispatch);
   renderDemonPanel(document.getElementById("demon-panel")!, state, dispatch);
-  renderActiveCard(document.getElementById("active-card-panel")!, state);
   renderDicePool(document.getElementById("dice-pool")!, state, dispatch, {
-    visible: roundReady && (rolling || state.player.rolled.length > 0),
+    visible: roundReady && (rolling || diceFlyUp),
     rolling,
+    flyUp: diceFlyUp,
   });
   renderActionRail(document.getElementById("action-rail")!, state, dispatch, {
     visible: roundReady && state.phase === "await-select",
@@ -128,10 +135,12 @@ function render(): void {
     renderCardIntro(modalRoot, state.currentCard, () => {
       if (!state) return;
       acknowledgedRound = state.round;
-      modalRoot.innerHTML = "";
       render();
     });
-  } else if (modalRoot?.firstElementChild?.classList.contains("card-intro-bg")) {
+  } else if (
+    modalRoot?.firstElementChild?.classList.contains("card-intro-bg")
+    && !modalRoot.firstElementChild.classList.contains("card-intro-morphing")
+  ) {
     modalRoot.innerHTML = "";
   }
 }

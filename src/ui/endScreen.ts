@@ -51,6 +51,10 @@ export function renderEndScreen(state: GameState, onRestart: () => void, onHome:
   const madCount = state.player.handDice.filter((d) => d.kind === "madness").length;
   summary.innerHTML = `
     <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(42, 58, 70, 0.4); padding: 4px 0;">
+      <span>抵达关卡</span>
+      <strong style="color: var(--warning-yellow);">${state.level} / 10</strong>
+    </div>
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(42, 58, 70, 0.4); padding: 4px 0;">
       <span>攀登时长</span>
       <strong>${state.round} 回合</strong>
     </div>

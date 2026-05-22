@@ -1,40 +1,63 @@
 import { allCards } from "./cards";
-import { balance } from "./balance";
+import { getLevelConfig } from "./levels";
 import { makeRng, shuffle } from "./rng";
-import type { Die, GameState } from "./types";
+import type { Die, GameState, RoundEffects } from "./types";
 
-export function initialState(seed: number): GameState {
-  const rng = makeRng(seed);
+export function emptyRoundEffects(): RoundEffects {
+  return {
+    scoreBonus: 0,
+    preventSlide: false,
+    demonAdvanceDelta: 0,
+    extraAdvance: 0,
+  };
+}
 
-  const colorDice: Die[] = Array.from({ length: balance.PLAYER_COLOR_DICE }, (_, i) => ({
-    id: `c${i}`,
+export function makeLevelDice(level: number): { handDice: Die[]; madnessStock: number } {
+  const config = getLevelConfig(level);
+  const colorDice: Die[] = Array.from({ length: config.colorDice }, (_, i) => ({
+    id: `L${level}_c${i}`,
     kind: "color",
     face: null,
   }));
-  const madDice: Die[] = Array.from({ length: balance.START_MADNESS_DICE }, (_, i) => ({
-    id: `m${i}`,
+  const madDice: Die[] = Array.from({ length: config.startMadnessDice }, (_, i) => ({
+    id: `L${level}_m${i}`,
     kind: "madness",
     face: null,
   }));
+
+  return {
+    handDice: [...colorDice, ...madDice],
+    madnessStock: Math.max(0, config.madnessStock - config.startMadnessDice),
+  };
+}
+
+export function initialState(seed: number): GameState {
+  const rng = makeRng(seed);
+  const level = 1;
+  const config = getLevelConfig(level);
+  const levelDice = makeLevelDice(level);
 
   const shuffled = shuffle(rng, allCards);
   const [first, ...rest] = shuffled;
 
   return {
     phase: "await-select",
+    level,
     player: {
-      cell: balance.START_PLAYER_CELL,
-      handDice: [...colorDice, ...madDice],
+      cell: config.startPlayerCell,
+      handDice: levelDice.handDice,
       selected: [],
       rolled: [],
       rerollsLeft: 0,
+      items: [],
     },
-    demon: { cell: balance.START_DEMON_CELL },
-    madnessStock: balance.MADNESS_STOCK - balance.START_MADNESS_DICE,
+    demon: { cell: config.startDemonCell },
+    madnessStock: levelDice.madnessStock,
     deck: rest,
     discard: [],
     currentCard: first,
     round: 1,
+    roundEffects: emptyRoundEffects(),
     log: [],
     rng,
   };

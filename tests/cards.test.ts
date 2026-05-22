@@ -5,10 +5,11 @@ import type { DieFace } from "../src/game/types";
 const faces = (xs: number[]): DieFace[] => xs as DieFace[];
 
 describe("cards", () => {
-  it("ships exactly 6 cards in Phase 1 (4 normal + 2 event)", () => {
-    expect(allCards.length).toBe(6);
-    expect(allCards.filter((c) => c.type === "normal").length).toBe(4);
-    expect(allCards.filter((c) => c.type === "event").length).toBe(2);
+  it("ships an expanded crisis deck with normal and event cards", () => {
+    expect(allCards.length).toBe(16);
+    expect(allCards.filter((c) => c.type === "normal").length).toBe(10);
+    expect(allCards.filter((c) => c.type === "event").length).toBe(6);
+    expect(allCards.filter((c) => c.itemReward).length).toBe(6);
   });
 
   it("evaluateCondition: sum-at-least", () => {

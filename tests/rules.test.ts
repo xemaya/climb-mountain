@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { GOAL_CELL, SLIDE_BACK_CELLS } from "../src/game/balance";
+import { GOAL_CELL } from "../src/game/balance";
+import { getLevelConfig } from "../src/game/levels";
 import { applyAction, climbScore } from "../src/game/rules";
 import { initialState } from "../src/game/state";
 import type { Die, GameState } from "../src/game/types";
@@ -66,7 +67,7 @@ describe("rules: commit turn resolution", () => {
     const s1 = withRolled({ ...s, player: { ...s.player, cell: 5 } }, rolled);
     const s2 = applyAction(s1, { kind: "commit" });
 
-    expect(s2.player.cell).toBe(Math.max(1, 5 - SLIDE_BACK_CELLS));
+    expect(s2.player.cell).toBe(Math.max(1, 5 - getLevelConfig(s.level).slideBackCells));
     expect(s2.player.handDice.filter((d) => d.kind === "madness").length).toBe(madnessBefore + 1);
     expect(s2.madnessStock).toBe(stockBefore - 1);
   });
@@ -81,14 +82,25 @@ describe("rules: commit turn resolution", () => {
     ]);
     const s2 = applyAction(s1, { kind: "commit" });
 
-    expect(s2.player.cell).toBe(s.player.cell - SLIDE_BACK_CELLS);
+    expect(s2.player.cell).toBe(s.player.cell - getLevelConfig(s.level).slideBackCells);
   });
 
-  it("WIN: player reaches GOAL_CELL", () => {
+  it("reaching GOAL_CELL before the final level advances to the next level", () => {
     const s = withCard("armata-stare");
     const rolled = s.player.handDice.filter((d) => d.kind === "color").slice(0, 3)
       .map((d) => ({ ...d, face: 5 as const }));
     const s1 = withRolled({ ...s, player: { ...s.player, cell: GOAL_CELL - 1 }, demon: { cell: 0 } }, rolled);
+    const s2 = applyAction(s1, { kind: "commit" });
+
+    expect(s2.phase).toBe("await-select");
+    expect(s2.level).toBe(2);
+  });
+
+  it("WIN: player reaches GOAL_CELL on final level", () => {
+    const s = withCard("armata-stare");
+    const rolled = s.player.handDice.filter((d) => d.kind === "color").slice(0, 3)
+      .map((d) => ({ ...d, face: 5 as const }));
+    const s1 = withRolled({ ...s, level: 10, player: { ...s.player, cell: GOAL_CELL - 1 }, demon: { cell: 0 } }, rolled);
     const s2 = applyAction(s1, { kind: "commit" });
 
     expect(s2.phase).toBe("won");
@@ -102,5 +114,37 @@ describe("rules: commit turn resolution", () => {
     const s2 = applyAction(s1, { kind: "commit" });
 
     expect(s2.phase).toBe("lost");
+  });
+
+  it("event success grants its item reward", () => {
+    const s = withCard("hastur");
+    const rolled = s.player.handDice.filter((d) => d.kind === "color").slice(0, 3)
+      .map((d) => ({ ...d, face: 5 as const }));
+    const s1 = withRolled(s, rolled);
+    const s2 = applyAction(s1, { kind: "commit" });
+
+    expect(s2.player.items.some((item) => item.id === "black-seal")).toBe(true);
+  });
+
+  it("rope-anchor prevents a failed-turn slide and madness gain", () => {
+    const s = withCard("armata-stare");
+    const rolled = s.player.handDice.filter((d) => d.kind === "color").slice(0, 2)
+      .map((d) => ({ ...d, face: 1 as const }));
+    const sWithItem = {
+      ...s,
+      player: {
+        ...s.player,
+        cell: 5,
+        items: [{ uid: "rope-test", id: "rope-anchor" as const }],
+      },
+    };
+    const used = applyAction(sWithItem, { kind: "use-item", uid: "rope-test" });
+    const s1 = withRolled(used, rolled);
+    const s2 = applyAction(s1, { kind: "commit" });
+
+    expect(s2.player.cell).toBe(5);
+    expect(s2.player.handDice.filter((d) => d.kind === "madness").length).toBe(
+      s.player.handDice.filter((d) => d.kind === "madness").length,
+    );
   });
 });

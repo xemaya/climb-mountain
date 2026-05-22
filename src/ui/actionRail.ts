@@ -1,14 +1,16 @@
 import { resolveTask } from "../game/cards";
-import { climbScore } from "../game/rules";
+import { canUseItem, itemDefinition } from "../game/items";
+import { getLevelConfig } from "../game/levels";
+import { turnScore } from "../game/rules";
 import type { Action, GameState } from "../game/types";
 
 function settleText(state: GameState): string {
   if (!state.currentCard || state.player.rolled.length === 0) return "先触碰命运";
 
-  const score = climbScore(state.player.rolled);
+  const score = turnScore(state);
   const advance = resolveTask(state.currentCard, score);
-  if (advance === null) return "退 2 格";
-  if (advance > 0) return `进 ${advance} 格`;
+  if (advance === null) return state.roundEffects.preventSlide ? "锚住" : `退 ${getLevelConfig(state.level).slideBackCells} 格`;
+  if (advance > 0) return `进 ${advance + state.roundEffects.extraAdvance} 格`;
   if (advance < 0) return `退 ${Math.abs(advance)} 格`;
   return "稳住当前";
 }
@@ -24,108 +26,84 @@ export function renderActionRail(
   parent.innerHTML = "";
   parent.className = "action-rail";
 
-  const container = document.createElement("div");
   const hasRolledDice = state.player.rolled.length > 0;
-  container.className = hasRolledDice ? "btn-group" : "btn-group single-action";
 
   if (!options.visible) {
     parent.className = "action-rail action-rail-hidden";
-    parent.appendChild(container);
     return;
   }
 
+  const renderAltar = (mode: "ready" | "rolling" | "waiting"): void => {
+    const altar = document.createElement("div");
+    altar.className = `ritual-altar mode-${mode}`;
+
+    const drawBtn = document.createElement("button");
+    drawBtn.className = "ritual-panel listen-panel";
+    drawBtn.disabled = mode !== "ready" || state.player.handDice.length === 0;
+    drawBtn.innerHTML = `
+      <span class="ritual-icon">◈</span>
+      <strong>${state.player.handDice.length === 0 ? "骰袋枯竭" : "聆听祂声"}</strong>
+      <small>${mode === "rolling" ? "命运翻滚中" : "ROLL THE DICE"}</small>
+    `;
+    drawBtn.addEventListener("click", () => dispatch({ kind: "draw-die" }));
+    altar.appendChild(drawBtn);
+
+    const score = turnScore(state);
+    const scoreOrb = document.createElement("div");
+    scoreOrb.className = "ritual-score-orb";
+    scoreOrb.innerHTML = `
+      <span>攀登值</span>
+      <strong>${score}</strong>
+      <small>${state.player.rolled.length > 0 ? "CURRENT RITUAL" : "AWAITING DICE"}</small>
+    `;
+    altar.appendChild(scoreOrb);
+
+    const settleBtn = document.createElement("button");
+    const advance = state.currentCard ? resolveTask(state.currentCard, score) : null;
+    const isFailure = advance === null || advance < 0;
+    settleBtn.className = `ritual-panel end-panel${isFailure ? " danger" : " success"}`;
+    settleBtn.disabled = mode !== "ready" || !hasRolledDice;
+    const settleLabel = hasRolledDice
+      ? (isFailure ? "结束仪式" : "封印此刻")
+      : "结束仪式";
+    settleBtn.innerHTML = `
+      <span class="ritual-icon">${isFailure ? "⌛" : "✦"}</span>
+      <strong>${settleLabel}</strong>
+      <small>${settleText(state)}</small>
+    `;
+    settleBtn.addEventListener("click", () => dispatch({ kind: "commit" }));
+    altar.appendChild(settleBtn);
+
+    parent.appendChild(altar);
+  };
+
   // 1. Loading/Resolving states
   if (state.phase === "resolving" || options.rolling) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "action-btn-wrapper";
-
-    const btn = document.createElement("button");
-    btn.className = "btn disabled listen-deity-btn pulse-blue";
-    btn.disabled = true;
-    wrapper.appendChild(btn);
-
-    const label = document.createElement("div");
-    label.className = "action-btn-label loading";
-    label.textContent = options.rolling ? "命运翻滚中" : "结算仪式中";
-    wrapper.appendChild(label);
-
-    container.appendChild(wrapper);
-    parent.appendChild(container);
+    renderAltar("rolling");
     return;
   }
 
   // 2. Waiting phase states
   if (state.phase !== "await-select") {
-    const wrapper = document.createElement("div");
-    wrapper.className = "action-btn-wrapper";
-
-    const btn = document.createElement("button");
-    btn.className = "btn disabled listen-deity-btn";
-    btn.disabled = true;
-    wrapper.appendChild(btn);
-
-    const label = document.createElement("div");
-    label.className = "action-btn-label";
-    label.textContent = "等待仪式开端";
-    wrapper.appendChild(label);
-
-    container.appendChild(wrapper);
-    parent.appendChild(container);
+    renderAltar("waiting");
     return;
   }
 
-  // 3. Draw Button wrapper (Left button)
-  const drawWrapper = document.createElement("div");
-  drawWrapper.className = "action-btn-wrapper";
-
-  const drawBtn = document.createElement("button");
-  if (state.player.handDice.length === 0) {
-    drawBtn.className = "btn primary disabled listen-deity-btn";
-    drawBtn.disabled = true;
-  } else {
-    drawBtn.className = "btn primary listen-deity-btn";
-    drawBtn.disabled = options.rolling;
-  }
-  drawBtn.addEventListener("click", () => dispatch({ kind: "draw-die" }));
-  drawWrapper.appendChild(drawBtn);
-
-  const drawLabel = document.createElement("div");
-  drawLabel.className = "action-btn-label";
-  drawLabel.textContent = state.player.handDice.length === 0 ? "骰袋枯竭" : "聆听祂声";
-  drawWrapper.appendChild(drawLabel);
-
-  container.appendChild(drawWrapper);
-
-  // 4. Settle Button wrapper (Right button - visible only after rolling)
-  if (hasRolledDice) {
-    const settleWrapper = document.createElement("div");
-    settleWrapper.className = "action-btn-wrapper";
-
-    const settleBtn = document.createElement("button");
-    const score = climbScore(state.player.rolled);
-    const advance = state.currentCard ? resolveTask(state.currentCard, score) : null;
-    const isFailure = advance === null || advance < 0;
-
-    if (isFailure) {
-      settleBtn.className = "btn danger backfire-btn";
-    } else {
-      // Both use circular buttons, but success state has success-seal-btn (green hue rotated in CSS)
-      settleBtn.className = "btn success backfire-btn success-seal-btn";
+  if (state.player.items.length > 0) {
+    const itemRail = document.createElement("div");
+    itemRail.className = "item-context-rail";
+    for (const item of state.player.items) {
+      const def = itemDefinition(item.id);
+      const btn = document.createElement("button");
+      btn.className = "item-chip";
+      btn.textContent = def.shortName;
+      btn.title = def.description;
+      btn.disabled = !canUseItem(state, item.id);
+      btn.addEventListener("click", () => dispatch({ kind: "use-item", uid: item.uid }));
+      itemRail.appendChild(btn);
     }
-    settleBtn.disabled = options.rolling;
-    settleBtn.addEventListener("click", () => dispatch({ kind: "commit" }));
-    settleWrapper.appendChild(settleBtn);
-
-    const settleLabel = document.createElement("div");
-    settleLabel.className = "action-btn-label";
-    
-    // Label text dynamically reflects the outcome
-    const textPrefix = isFailure ? "仪式反噬:" : "封印此刻:";
-    settleLabel.textContent = `${textPrefix} ${settleText(state)}`;
-    settleWrapper.appendChild(settleLabel);
-
-    container.appendChild(settleWrapper);
+    parent.appendChild(itemRail);
   }
 
-  parent.appendChild(container);
+  renderAltar("ready");
 }
