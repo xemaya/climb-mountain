@@ -1,3 +1,5 @@
+import { openRulesModal } from "./rulesModal";
+
 export function renderStartMenu(onStart: () => void): void {
   const root = document.getElementById("modal-root")!;
   if (!root) return;
@@ -27,6 +29,8 @@ export function renderStartMenu(onStart: () => void): void {
 
   const btnRow = document.createElement("div");
   btnRow.className = "start-menu-actions";
+  btnRow.style.flexDirection = "column";
+  btnRow.style.gap = "var(--s-12)";
 
   const startBtn = document.createElement("button");
   startBtn.className = "start-ritual-btn";
@@ -36,6 +40,19 @@ export function renderStartMenu(onStart: () => void): void {
     onStart();
   });
   btnRow.appendChild(startBtn);
+
+  const rulesBtn = document.createElement("button");
+  rulesBtn.className = "start-ritual-btn";
+  rulesBtn.textContent = "查看规则";
+  rulesBtn.style.minHeight = "48px";
+  rulesBtn.style.fontSize = "16px";
+  rulesBtn.style.background = "linear-gradient(180deg, rgba(42, 58, 70, 0.3), rgba(20, 28, 35, 0.8))";
+  rulesBtn.style.borderColor = "rgba(0, 240, 255, 0.2)";
+  rulesBtn.style.boxShadow = "none";
+  rulesBtn.addEventListener("click", () => {
+    openRulesModal();
+  });
+  btnRow.appendChild(rulesBtn);
 
   grid.appendChild(btnRow);
   modal.appendChild(grid);

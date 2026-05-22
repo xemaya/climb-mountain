@@ -10,6 +10,7 @@ import { renderEventLog } from "./ui/eventLog";
 import { openCardModal } from "./ui/cardModal";
 import { renderStartMenu } from "./ui/startMenu";
 import { renderEndScreen } from "./ui/endScreen";
+import { renderLevelComplete } from "./ui/levelComplete";
 import { renderCardIntro } from "./ui/cardIntro";
 import type { Action, GameState } from "./game/types";
 
@@ -41,8 +42,11 @@ function showStart(): void {
 function handleTerminal(delayMs: number): boolean {
   if (!state) return false;
   if (state.phase === "won" || state.phase === "lost") {
+    const originalState = state;
     setTimeout(() => {
-      renderEndScreen(state!, startGame, showStart);
+      if (state === originalState && (state.phase === "won" || state.phase === "lost")) {
+        renderEndScreen(state, startGame, showStart);
+      }
     }, delayMs);
     return true;
   }
@@ -93,7 +97,16 @@ function dispatch(a: Action): void {
         handleTerminal(0);
         return;
       }
-      
+
+      // Summited a non-final level: pawn has now climbed to the GOAL. Show the
+      // "level cleared" transition; advancing/resetting waits for the player.
+      if (postCommit.phase === "level-cleared") {
+        state = postCommit;
+        render();
+        renderLevelComplete(postCommit, () => dispatch({ kind: "next-level" }));
+        return;
+      }
+
       // Otherwise, unlock the "await-select" phase, allowing card intro modal to trigger
       state = {
         ...postCommit,

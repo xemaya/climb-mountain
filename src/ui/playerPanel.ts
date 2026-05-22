@@ -1,11 +1,12 @@
 import { itemDefinition } from "../game/items";
 import { getLevelConfig } from "../game/levels";
 import type { Action, GameState } from "../game/types";
+import { balance } from "../game/balance";
 
 export function renderPlayerPanel(
   parent: HTMLElement,
   state: GameState,
-  dispatch: (a: Action) => void,
+  _dispatch: (a: Action) => void,
 ): void {
   if (!parent) return;
 
@@ -70,14 +71,14 @@ export function renderPlayerPanel(
     </div>
     <div class="char-stat-row">
       <span>位置</span>
-      <strong style="color: var(--highlight-blue); font-size: 14px;">${state.player.cell} / 14</strong>
+      <strong style="color: var(--highlight-blue); font-size: 14px;">${state.player.cell} / ${balance.GOAL_CELL}</strong>
     </div>
     <div class="char-stat-row">
-      <span>疯狂股</span>
+      <span>疯狂骰</span>
       <strong style="color: var(--danger-red); font-size: 14px;">${madN}</strong>
     </div>
     <div class="char-stat-row">
-      <span>可用股</span>
+      <span>可用骰</span>
       <strong style="color: var(--snow-grey); font-size: 14px;">${colorN}</strong>
     </div>
     <div class="char-stat-row">
@@ -90,5 +91,4 @@ export function renderPlayerPanel(
   card.appendChild(stats);
   parent.appendChild(card);
 
-  void dispatch;
 }

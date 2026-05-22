@@ -198,7 +198,7 @@ export function applyAction(state: GameState, action: Action): GameState {
         }
         return true;
       });
-      next.player.rolled = movedToRolled;
+      next.player.rolled = [...next.player.rolled, ...movedToRolled];
       next.player.selected = [];
       next.player.rerollsLeft = balance.MAX_REROLLS;
       next.phase = "await-reroll";
@@ -208,12 +208,16 @@ export function applyAction(state: GameState, action: Action): GameState {
     case "reroll": {
       if (state.phase !== "await-reroll") return state;
       const next = clone(state);
+      if (action.ids.length === 0) {
+        next.phase = "await-commit";
+        return next;
+      }
       const rerollSet = new Set<DieId>(action.ids);
       for (const d of next.player.rolled) {
         if (rerollSet.has(d.id)) d.face = rollFace(next);
       }
       next.player.rerollsLeft = next.player.rerollsLeft - 1;
-      if (next.player.rerollsLeft <= 0 || action.ids.length === 0) {
+      if (next.player.rerollsLeft <= 0) {
         next.phase = "await-commit";
       }
       return next;
@@ -307,7 +311,7 @@ export function applyAction(state: GameState, action: Action): GameState {
         }
       } else {
         const advance = taskResult + next.roundEffects.extraAdvance;
-        next.player.cell = next.player.cell + advance;
+        next.player.cell = Math.min(balance.GOAL_CELL, next.player.cell + advance);
         next.log.push({ round: next.round, text: `攀登值 ${score}，你前进 ${advance} 格${next.roundEffects.extraAdvance > 0 ? "（道具 +1）" : ""}` });
         if (card.type === "event" && card.itemReward) {
           grantItem(next, card.itemReward);
@@ -334,7 +338,10 @@ export function applyAction(state: GameState, action: Action): GameState {
       }
       if (next.player.cell >= balance.GOAL_CELL) {
         if (!isFinalLevel(next.level)) {
-          advanceToNextLevel(next);
+          // Hold at the summit so the climb animation and "level cleared" feedback can
+          // play; the next-level action performs the actual reset/advance.
+          next.phase = "level-cleared";
+          next.log.push({ round: next.round, text: `第 ${next.level} 关登顶！` });
           return next;
         }
         next.phase = "won";
@@ -343,6 +350,13 @@ export function applyAction(state: GameState, action: Action): GameState {
 
       // ===== Draw next card =====
       drawNextCard(next, card);
+      return next;
+    }
+
+    case "next-level": {
+      if (state.phase !== "level-cleared") return state;
+      const next = clone(state);
+      advanceToNextLevel(next);
       return next;
     }
 

@@ -24,7 +24,7 @@ function toggleOverlay(id: string): void {
 export function renderTopBar(
   parent: HTMLElement,
   state: GameState,
-  dispatch: (a: Action) => void,
+  _dispatch: (a: Action) => void,
 ): void {
   if (!parent) return;
 
@@ -48,7 +48,7 @@ export function renderTopBar(
   progress.className = "summit-progress";
   progress.innerHTML = `
     <div class="summit-title">DISTANCE TO SUMMIT</div>
-    <div class="summit-count">${state.player.cell} / ${balance.GOAL_CELL - 1}</div>
+    <div class="summit-count">${state.player.cell} / ${balance.GOAL_CELL}</div>
     <div class="summit-track">
       <div class="summit-fill player" style="width: ${playerPct}%"></div>
       <div class="summit-fill beast" style="width: ${demonPct}%"></div>
@@ -68,5 +68,4 @@ export function renderTopBar(
   dAvatar.addEventListener("click", () => toggleOverlay("demon-panel-overlay"));
   parent.appendChild(dAvatar);
 
-  void dispatch;
 }

@@ -77,6 +77,7 @@ export type Phase =
   | "await-reroll"
   | "await-commit"
   | "resolving" // C → D → demon-advance animation window (UI-only state)
+  | "level-cleared" // player reached the summit of a non-final level; awaiting next-level
   | "won"
   | "lost";
 
@@ -130,4 +131,5 @@ export type Action =
   | { kind: "reroll"; ids: DieId[] } // subset of rolled
   | { kind: "use-item"; uid: string }
   | { kind: "commit" } // C → D → demon-advance → check win/loss → draw next card
+  | { kind: "next-level" } // advance from level-cleared into the next level
   | { kind: "advance-event-card" }; // when next card is event, system invokes this to auto-resolve

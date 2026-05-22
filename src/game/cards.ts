@@ -1,5 +1,29 @@
 import type { Card, DiceCondition, DieFace } from "./types";
 
+export function conditionText(c: DiceCondition, short = false): string {
+  if (short) {
+    switch (c.kind) {
+      case "score-at-least":          return `≥${c.n}`;
+      case "sum-at-least":            return `总和≥${c.n}`;
+      case "sum-at-most":             return `总和≤${c.n}`;
+      case "face-count":              return `${c.face}点×${c.atLeast}`;
+      case "same-face-groups":        return `${c.count}组同点`;
+      case "distinct-faces":          return `${c.atLeast}种点数`;
+      case "distinct-faces-at-most":  return `≤${c.n}种点数`;
+    }
+  }
+
+  switch (c.kind) {
+    case "score-at-least":          return `攀登值 ≥ ${c.n}`;
+    case "sum-at-least":            return `点数总和 ≥ ${c.n}`;
+    case "sum-at-most":             return `点数总和 ≤ ${c.n}`;
+    case "face-count":              return `至少 ${c.atLeast} 颗 ${c.face} 点`;
+    case "same-face-groups":        return `出现 ${c.count} 组、每组 ${c.groupSize} 颗同点`;
+    case "distinct-faces":          return `不同点数 ≥ ${c.atLeast} 种`;
+    case "distinct-faces-at-most":  return `不同点数 ≤ ${c.n} 种`;
+  }
+}
+
 export function evaluateCondition(cond: DiceCondition, scoreOrFaces: number | DieFace[], maybeFaces: DieFace[] = []): boolean {
   const score = Array.isArray(scoreOrFaces)
     ? scoreOrFaces.reduce<number>((a, b) => a + b, 0)

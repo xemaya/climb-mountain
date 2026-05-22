@@ -1,17 +1,7 @@
-import type { Card, DiceCondition } from "../game/types";
+import type { Card } from "../game/types";
 import { itemDefinition } from "../game/items";
+import { conditionText } from "../game/cards";
 
-function conditionText(c: DiceCondition): string {
-  switch (c.kind) {
-    case "score-at-least":          return `攀登值 ≥ ${c.n}`;
-    case "sum-at-least":            return `总和 ≥ ${c.n}`;
-    case "sum-at-most":             return `总和 ≤ ${c.n}`;
-    case "face-count":              return `至少 ${c.atLeast} 颗 ${c.face} 点`;
-    case "same-face-groups":        return `${c.count} 组同点`;
-    case "distinct-faces":          return `不同点数 ≥ ${c.atLeast} 种`;
-    case "distinct-faces-at-most":  return `不同点数 ≤ ${c.n} 种`;
-  }
-}
 
 export function renderCardIntro(root: HTMLElement, card: Card, onConfirm: () => void): void {
   root.innerHTML = "";

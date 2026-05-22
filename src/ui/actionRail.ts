@@ -2,13 +2,14 @@ import { resolveTask } from "../game/cards";
 import { canUseItem, itemDefinition } from "../game/items";
 import { getLevelConfig } from "../game/levels";
 import { turnScore } from "../game/rules";
-import type { Action, GameState } from "../game/types";
+import type { Action, GameState, DieFace } from "../game/types";
 
 function settleText(state: GameState): string {
   if (!state.currentCard || state.player.rolled.length === 0) return "先触碰命运";
 
   const score = turnScore(state);
-  const advance = resolveTask(state.currentCard, score);
+  const faces = state.player.rolled.map((d) => d.face).filter((f): f is DieFace => f !== null);
+  const advance = resolveTask(state.currentCard, score, faces);
   if (advance === null) return state.roundEffects.preventSlide ? "锚住" : `退 ${getLevelConfig(state.level).slideBackCells} 格`;
   if (advance > 0) return `进 ${advance + state.roundEffects.extraAdvance} 格`;
   if (advance < 0) return `退 ${Math.abs(advance)} 格`;
@@ -59,7 +60,8 @@ export function renderActionRail(
     altar.appendChild(scoreOrb);
 
     const settleBtn = document.createElement("button");
-    const advance = state.currentCard ? resolveTask(state.currentCard, score) : null;
+    const faces = state.player.rolled.map((d) => d.face).filter((f): f is DieFace => f !== null);
+    const advance = state.currentCard ? resolveTask(state.currentCard, score, faces) : null;
     const isFailure = advance === null || advance < 0;
     settleBtn.className = `ritual-panel end-panel${isFailure ? " danger" : " success"}`;
     settleBtn.disabled = mode !== "ready" || !hasRolledDice;

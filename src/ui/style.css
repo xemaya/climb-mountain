@@ -2800,7 +2800,11 @@ body {
 }
 
 .board .pawn-token.demon {
-  display: none !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-color: var(--danger-red) !important;
+  box-shadow: 0 0 22px rgba(209, 78, 55, 0.85), 0 0 42px rgba(209, 78, 55, 0.34) !important;
+  z-index: 11 !important;
 }
 
 .board-death-alert {

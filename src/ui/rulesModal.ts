@@ -21,14 +21,20 @@ export function openRulesModal(): void {
   const root = document.getElementById("modal-root")!;
   if (!root) return;
 
-  root.innerHTML = "";
-  
   const bg = document.createElement("div");
   bg.className = "modal-bg";
-  bg.addEventListener("click", () => { root.innerHTML = ""; });
+  
+  const close = () => {
+    if (bg.parentNode === root) {
+      root.removeChild(bg);
+    }
+  };
+  bg.addEventListener("click", close);
   
   const modal = document.createElement("div");
   modal.className = "modal";
+  modal.style.maxHeight = "90vh";
+  modal.style.overflowY = "auto";
   modal.addEventListener("click", (e) => e.stopPropagation());
   
   // Render rules markup
@@ -40,7 +46,7 @@ export function openRulesModal(): void {
   closeBtn.style.width = "100%";
   closeBtn.style.marginTop = "var(--s-24)";
   closeBtn.textContent = "明晰规则";
-  closeBtn.addEventListener("click", () => { root.innerHTML = ""; });
+  closeBtn.addEventListener("click", close);
   modal.appendChild(closeBtn);
 
   bg.appendChild(modal);

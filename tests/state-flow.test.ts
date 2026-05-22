@@ -19,6 +19,10 @@ function playToEnd(seed: number, maxRounds = 100): GameState {
   let s = initialState(seed);
   for (let r = 0; r < maxRounds; r++) {
     if (s.phase === "won" || s.phase === "lost") return s;
+    if (s.phase === "level-cleared") {
+      s = applyAction(s, { kind: "next-level" });
+      continue;
+    }
     if (s.phase === "await-select" && s.currentCard) {
       s = playGreedyTurn(s);
     } else {

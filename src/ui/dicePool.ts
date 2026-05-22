@@ -1,10 +1,5 @@
 import type { Action, Die, GameState } from "../game/types";
 
-export let selectedRerollIds: string[] = [];
-
-export function clearSelectedRerollIds(): void {
-  selectedRerollIds = [];
-}
 
 function dieElement(die: Die): HTMLElement {
   const el = document.createElement("div");
@@ -18,7 +13,7 @@ function dieElement(die: Die): HTMLElement {
 export function renderDicePool(
   parent: HTMLElement,
   state: GameState,
-  dispatch: (a: Action) => void,
+  _dispatch: (a: Action) => void,
   options: { visible: boolean; rolling: boolean; flyUp?: boolean } = { visible: true, rolling: false },
 ): void {
   if (!parent) return;
@@ -28,7 +23,6 @@ export function renderDicePool(
 
   if (!options.visible) {
     void state;
-    void dispatch;
     return;
   }
 
@@ -53,6 +47,4 @@ export function renderDicePool(
   }
   tray.appendChild(dice);
   parent.appendChild(tray);
-
-  void dispatch;
 }

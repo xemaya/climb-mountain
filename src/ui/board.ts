@@ -1,41 +1,32 @@
-import type { DiceCondition, GameState } from "../game/types";
+import type { GameState } from "../game/types";
 import { balance } from "../game/balance";
 import { itemDefinition } from "../game/items";
+import { conditionText } from "../game/cards";
+import { openRulesModal } from "./rulesModal";
 
 let cellsRendered = false;
 let playerPawn: HTMLElement | null = null;
 let demonPawn: HTMLElement | null = null;
 let eventMarker: HTMLButtonElement | null = null;
 
-function conditionText(c: DiceCondition): string {
-  switch (c.kind) {
-    case "score-at-least":          return `≥${c.n}`;
-    case "sum-at-least":            return `总和≥${c.n}`;
-    case "sum-at-most":             return `总和≤${c.n}`;
-    case "face-count":              return `${c.face}点×${c.atLeast}`;
-    case "same-face-groups":        return `${c.count}组同点`;
-    case "distinct-faces":          return `${c.atLeast}种点数`;
-    case "distinct-faces-at-most":  return `≤${c.n}种点数`;
-  }
-}
-
-// Vertical summit path: optimized for portrait screens and clear "climb upward" reading.
+// Serpentine summit path: wide left-right swing so the trail reads as a winding climb,
+// not a packed vertical column. Goal is recentred at the top.
 const coords: Record<number, { left: number; bottom: number }> = {
-  0:  { left: 50, bottom: 27 },
-  1:  { left: 48, bottom: 32 },
-  2:  { left: 52, bottom: 36 },
-  3:  { left: 49, bottom: 41 },
-  4:  { left: 53, bottom: 45 },
-  5:  { left: 50, bottom: 50 },
-  6:  { left: 54, bottom: 54 },
-  7:  { left: 49, bottom: 59 }, // Death Zone starts
-  8:  { left: 53, bottom: 63 },
-  9:  { left: 50, bottom: 68 },
-  10: { left: 54, bottom: 72 },
-  11: { left: 50, bottom: 77 },
-  12: { left: 55, bottom: 81 },
-  13: { left: 51, bottom: 86 },
-  14: { left: 50, bottom: 91 }, // GOAL
+  0:  { left: 50, bottom: 15 },
+  1:  { left: 36, bottom: 21 },
+  2:  { left: 64, bottom: 27 },
+  3:  { left: 35, bottom: 33 },
+  4:  { left: 65, bottom: 39 },
+  5:  { left: 35, bottom: 45 },
+  6:  { left: 65, bottom: 51 },
+  7:  { left: 35, bottom: 57 }, // Death Zone starts
+  8:  { left: 65, bottom: 63 },
+  9:  { left: 36, bottom: 69 },
+  10: { left: 64, bottom: 74 },
+  11: { left: 40, bottom: 80 },
+  12: { left: 60, bottom: 85 },
+  13: { left: 47, bottom: 89 },
+  14: { left: 50, bottom: 92 }, // GOAL
 };
 
 export function renderBoard(parent: HTMLElement, state: GameState): void {
@@ -103,6 +94,18 @@ export function renderBoard(parent: HTMLElement, state: GameState): void {
       }
     });
     parent.appendChild(logTrigger);
+
+    // 1.6. Render Rules floating trigger (📖)
+    const rulesTrigger = document.createElement("div");
+    rulesTrigger.className = "floating-log-trigger";
+    rulesTrigger.style.right = "auto";
+    rulesTrigger.style.left = "var(--s-16)";
+    rulesTrigger.innerHTML = "📖";
+    rulesTrigger.title = "查看游戏规则";
+    rulesTrigger.addEventListener("click", () => {
+      openRulesModal();
+    });
+    parent.appendChild(rulesTrigger);
 
     // 2. Render serpentine step nodes from 0 up to GOAL (14)
     const goalCell = balance.GOAL_CELL;
@@ -183,7 +186,7 @@ export function renderBoard(parent: HTMLElement, state: GameState): void {
       .slice(0, 2)
       .map((task) => {
         const sign = task.advance >= 0 ? "+" : "";
-        return `<span>${conditionText(task.requires)} <strong>${sign}${task.advance}</strong></span>`;
+        return `<span>${conditionText(task.requires, true)} <strong>${sign}${task.advance}</strong></span>`;
       })
       .join("");
     const reward = card.itemReward ? `<small>奖励：${itemDefinition(card.itemReward).shortName}</small>` : "";

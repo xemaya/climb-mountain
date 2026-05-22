@@ -85,15 +85,34 @@ describe("rules: commit turn resolution", () => {
     expect(s2.player.cell).toBe(s.player.cell - getLevelConfig(s.level).slideBackCells);
   });
 
-  it("reaching GOAL_CELL before the final level advances to the next level", () => {
+  it("reaching GOAL_CELL before the final level enters the level-cleared phase at the summit", () => {
     const s = withCard("armata-stare");
     const rolled = s.player.handDice.filter((d) => d.kind === "color").slice(0, 3)
       .map((d) => ({ ...d, face: 5 as const }));
     const s1 = withRolled({ ...s, player: { ...s.player, cell: GOAL_CELL - 1 }, demon: { cell: 0 } }, rolled);
     const s2 = applyAction(s1, { kind: "commit" });
 
+    expect(s2.phase).toBe("level-cleared");
+    expect(s2.level).toBe(1);
+    expect(s2.player.cell).toBeGreaterThanOrEqual(GOAL_CELL);
+  });
+
+  it("next-level advances from the level-cleared phase and resets the climber", () => {
+    const s = withCard("armata-stare");
+    const rolled = s.player.handDice.filter((d) => d.kind === "color").slice(0, 3)
+      .map((d) => ({ ...d, face: 5 as const }));
+    const s1 = withRolled({ ...s, player: { ...s.player, cell: GOAL_CELL - 1 }, demon: { cell: 0 } }, rolled);
+    const cleared = applyAction(s1, { kind: "commit" });
+    const s2 = applyAction(cleared, { kind: "next-level" });
+
     expect(s2.phase).toBe("await-select");
     expect(s2.level).toBe(2);
+    expect(s2.player.cell).toBe(getLevelConfig(2).startPlayerCell);
+  });
+
+  it("next-level is a no-op outside the level-cleared phase", () => {
+    const s = initialState(1);
+    expect(applyAction(s, { kind: "next-level" })).toBe(s);
   });
 
   it("WIN: player reaches GOAL_CELL on final level", () => {
@@ -146,5 +165,39 @@ describe("rules: commit turn resolution", () => {
     expect(s2.player.handDice.filter((d) => d.kind === "madness").length).toBe(
       s.player.handDice.filter((d) => d.kind === "madness").length,
     );
+  });
+
+  it("empty reroll does not deduct rerolls left and transitions to await-commit", () => {
+    const s = initialState(1);
+    s.phase = "await-reroll";
+    s.player.rerollsLeft = 2;
+    const s1 = applyAction(s, { kind: "reroll", ids: [] });
+    expect(s1.phase).toBe("await-commit");
+    expect(s1.player.rerollsLeft).toBe(2);
+  });
+
+  it("roll action appends newly rolled dice to player.rolled instead of overwriting", () => {
+    const s = withCard("armata-stare");
+    const d0 = s.player.handDice[0];
+    const d1 = s.player.handDice[1];
+    
+    // Set first die already in rolled
+    s.player.rolled = [{ ...d0, face: 4 }];
+    s.player.selected = [d1.id];
+    s.phase = "await-roll";
+    
+    const s1 = applyAction(s, { kind: "roll" });
+    expect(s1.player.rolled.length).toBe(2);
+    expect(s1.player.rolled[0].id).toBe(d0.id);
+    expect(s1.player.rolled[1].id).toBe(d1.id);
+  });
+
+  it("player position is clamped to GOAL_CELL upon advancing", () => {
+    const s = withCard("armata-stare");
+    const rolled = s.player.handDice.filter((d) => d.kind === "color").slice(0, 3)
+      .map((d) => ({ ...d, face: 5 as const }));
+    const s1 = withRolled({ ...s, player: { ...s.player, cell: GOAL_CELL - 1 }, demon: { cell: 0 } }, rolled);
+    const s2 = applyAction(s1, { kind: "commit" });
+    expect(s2.player.cell).toBe(GOAL_CELL);
   });
 });

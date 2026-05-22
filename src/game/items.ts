@@ -1,4 +1,4 @@
-import type { GameState, ItemId } from "./types";
+import type { GameState, ItemId, Phase } from "./types";
 
 export type ItemDefinition = {
   id: ItemId;
@@ -45,7 +45,8 @@ export function itemDefinition(id: ItemId): ItemDefinition {
 }
 
 export function canUseItem(state: GameState, id: ItemId): boolean {
-  if (state.phase !== "await-select") return false;
+  const allowedPhases: Phase[] = ["await-select", "await-roll", "await-reroll", "await-commit"];
+  if (!allowedPhases.includes(state.phase)) return false;
   if (!state.currentCard) return false;
 
   if (id === "salt-needle") {

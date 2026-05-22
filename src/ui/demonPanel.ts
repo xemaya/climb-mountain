@@ -1,9 +1,10 @@
 import type { Action, GameState } from "../game/types";
+import { balance } from "../game/balance";
 
 export function renderDemonPanel(
   parent: HTMLElement,
   state: GameState,
-  dispatch: (a: Action) => void,
+  _dispatch: (a: Action) => void,
 ): void {
   if (!parent) return;
 
@@ -61,15 +62,11 @@ export function renderDemonPanel(
   stats.innerHTML = `
     <div class="char-stat-row">
       <span>位置</span>
-      <strong style="color: var(--danger-red); font-size: 14px;">${state.demon.cell} / 14</strong>
+      <strong style="color: var(--danger-red); font-size: 14px;">${state.demon.cell} / ${balance.GOAL_CELL}</strong>
     </div>
     <div class="char-stat-row">
       <span>距离登山者</span>
       <strong style="color: var(--warning-yellow); font-size: 14px;">${dist} 格</strong>
-    </div>
-    <div class="char-stat-row">
-      <span>冰斧</span>
-      <strong style="color: var(--text-muted);">0 / 1</strong>
     </div>
     <div class="badge-tag">扭曲存在</div>
   `;
@@ -77,5 +74,4 @@ export function renderDemonPanel(
   card.appendChild(stats);
   parent.appendChild(card);
 
-  void dispatch;
 }
